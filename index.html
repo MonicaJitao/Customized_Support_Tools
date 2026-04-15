@@ -2992,10 +2992,16 @@ const PrintService = (() => {
         el.style.background = '#fff';
 
         html2canvas(el, {
-            scale: 2,              // 2倍清晰度
-            useCORS: true,         // 允许跨域图片
+            scale: 2,
+            useCORS: true,
             backgroundColor: '#ffffff',
-            logging: false         // 关闭日志输出
+            logging: false,
+            onclone: (clonedDoc) => {
+                // 禁用所有 CSS 动画，防止克隆时动画重置到初始帧（opacity:0）导致颜色发虚
+                const s = clonedDoc.createElement('style');
+                s.textContent = '* { animation: none !important; transition: none !important; }';
+                clonedDoc.head.appendChild(s);
+            }
         }).then(canvas => {
             // 恢复原始背景
             el.style.background = origBg;
