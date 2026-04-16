@@ -6,23 +6,44 @@
     <title>一户一策 · 业务工具台</title>
     <style>
 /* ============================================================
-   CSS 变量 — 金融终端色彩体系
+   CSS 变量 — 还款计算器（移动）+ RM PC 端参考配色
+   主色微众蓝、侧栏企业蓝、金额橙色高亮、必填与危险红独立
    ============================================================ */
 :root {
-    --navy:        #0D1B2A;
-    --navy-light:  #162236;
-    --gold:        #C9A84C;
-    --gold-light:  #E8C97A;
-    --ivory:       #F7F4EE;
-    --white:       #FFFFFF;
-    --ink:         #1A1A2E;
-    --ink-mid:     #4A4A6A;
-    --ink-light:   #8A8AAA;
-    --border:      #E8E4DC;
-    --success:     #2D7D46;
-    --danger:      #C0392B;
-    --warning:     #B7791F;
-    --chart-curve: #2C5F8A;
+    /* 主色系 — 与 RM / 移动端「试算」主按钮一致 */
+    --blue:            #165DFF;   /* 品牌主色：链接、折线图主线、打印标题等 */
+    --blue-dark:       #1861D5;   /* 侧栏、对比表头 */
+    --blue-darker:     #0E42D2;   /* 登录渐变起点、方案表头加深 */
+    --blue-light:      #4080FF;   /* 主色 hover / 提亮 */
+    --blue-tint:       #E8F3FF;   /* 浅蓝弱背景、信息提示底 */
+    --blue-focus:      #D6EBFF;   /* focus 浅晕 */
+
+    /* 交互主色（主按钮、Tab激活、描边）— 与 --blue 同系，沿用 --accent 名以少改模板 */
+    --accent:          #165DFF;
+    --accent-hover:    #4080FF;
+    --accent-light:    #FFFFFF;   /* 侧栏激活项文字 */
+    --accent-tint:     #E8F3FF;   /* 通用浅蓝提示底（非「警告」类） */
+    --accent-tint-soft:rgba(255,255,255,0.14); /* 侧栏当前项背景 */
+
+    /* 金额/结果高亮 — 移动端方案详情橙色数字 */
+    --highlight:       #FF7D00;
+
+    /* 中性色 — 接近 RM 正文层级 */
+    --ivory:           #F2F3F5;   /* 页面主背景 */
+    --white:           #FFFFFF;
+    --ink:             #1D2129;   /* 正文主色 */
+    --ink-mid:         #4E5969;   /* 标签、次要说明 */
+    --ink-light:       #86909C;   /* 辅助、占位 */
+    --border:          #E5E6EB;   /* 边框、分割线 */
+
+    /* 语义色 */
+    --success:         #00B42A;
+    --danger:          #F53F3F;   /* 必填 *、错误、侧栏退出 hover */
+    --warning:         #8F5610;
+    --warning-tint-bg: #FFF7E6;   /* 警告条背景（原红系弱底改为琥珀底） */
+    --warning-tint-border: #FFD591;
+    --chart-curve:     #165DFF;
+
     /* 字体栈：离线可用，不依赖外网 */
     --font-stack: "Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Segoe UI",sans-serif;
 }
@@ -52,7 +73,8 @@ input, button, select, textarea { font-family: inherit; }
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: linear-gradient(135deg, var(--navy) 0%, #1a2d45 100%);
+    /* 登录页：深蓝渐变，起点用 blue-darker 与品牌蓝衔接 */
+    background: linear-gradient(135deg, var(--blue-darker) 0%, var(--blue-dark) 100%);
 }
 /* 登录卡片 */
 .login-card {
@@ -81,7 +103,7 @@ input, button, select, textarea { font-family: inherit; }
 .login-brand {
     font-size: 22px;
     font-weight: 700;
-    color: var(--navy);
+    color: var(--blue);
     letter-spacing: 2px;
     margin-bottom: 4px;
 }
@@ -101,7 +123,7 @@ input, button, select, textarea { font-family: inherit; }
     outline: none;
     transition: border-color .2s;
 }
-.login-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,168,76,.15); }
+.login-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(22,93,255,.15); }
 .login-error {
     display: none;
     color: var(--danger);
@@ -112,7 +134,7 @@ input, button, select, textarea { font-family: inherit; }
 .login-btn {
     width: 100%;
     padding: 12px;
-    background: var(--gold);
+    background: var(--accent);
     color: var(--white);
     border: none;
     border-radius: 4px;
@@ -122,7 +144,7 @@ input, button, select, textarea { font-family: inherit; }
     letter-spacing: 4px;
     transition: background .2s;
 }
-.login-btn:hover { background: var(--gold-light); }
+.login-btn:hover { background: var(--accent-hover); }
 .login-footer {
     margin-top: 24px;
     font-size: 11px;
@@ -144,7 +166,7 @@ input, button, select, textarea { font-family: inherit; }
 .sidebar {
     width: 220px;
     min-width: 220px;
-    background: var(--navy);
+    background: var(--blue-dark);
     color: var(--white);
     display: flex;
     flex-direction: column;
@@ -160,11 +182,11 @@ input, button, select, textarea { font-family: inherit; }
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 2px;
-    color: var(--gold);
+    color: var(--white);
 }
 .sidebar-brand-sub {
     font-size: 11px;
-    color: var(--ink-light);
+    color: rgba(255,255,255,.55);
     letter-spacing: 1px;
     margin-top: 2px;
 }
@@ -188,10 +210,11 @@ input, button, select, textarea { font-family: inherit; }
     color: rgba(255,255,255,.9);
     background: rgba(255,255,255,.04);
 }
+/* 侧边栏当前项：深色底上用浅红字与浅粉底，保证对比度（约 4.68:1） */
 .nav-item.active {
-    color: var(--gold);
-    background: rgba(201,168,76,.08);
-    border-left-color: var(--gold);
+    color: var(--accent-light);
+    background: var(--accent-tint-soft);
+    border-left-color: #69B1FF;
 }
 .nav-icon { font-size: 10px; }
 .sidebar-footer {
@@ -291,8 +314,8 @@ input, button, select, textarea { font-family: inherit; }
     transition: border-color .2s, box-shadow .2s;
 }
 .form-input:focus {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 2px rgba(201,168,76,.12);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(22,93,255,.12);
 }
 .form-input:disabled {
     background: #f5f5f0;
@@ -326,16 +349,16 @@ input, button, select, textarea { font-family: inherit; }
     transition: all .2s;
 }
 .btn-primary {
-    background: var(--gold);
+    background: var(--accent);
     color: var(--white);
 }
-.btn-primary:hover { background: var(--gold-light); }
+.btn-primary:hover { background: var(--accent-hover); }
 .btn-outline {
     background: transparent;
     color: var(--ink-mid);
     border: 1px solid var(--border);
 }
-.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
 .btn-block { width: 100%; }
 .btn-group { display: flex; gap: 12px; margin-top: 20px; }
 
@@ -353,9 +376,9 @@ input, button, select, textarea { font-family: inherit; }
     transition: all .2s;
 }
 .radio-item.active {
-    border-color: var(--gold);
-    background: rgba(201,168,76,.06);
-    color: var(--gold);
+    border-color: var(--accent);
+    background: rgba(22,93,255,.08);
+    color: var(--accent);
     font-weight: 600;
 }
 
@@ -372,17 +395,17 @@ input, button, select, textarea { font-family: inherit; }
     color: var(--ink-mid);
     transition: all .2s;
 }
-.tab-item:hover { color: var(--gold); border-color: var(--gold); }
+.tab-item:hover { color: var(--accent); border-color: var(--accent); }
 .tab-item.active {
-    background: var(--gold);
+    background: var(--accent);
     color: var(--white);
-    border-color: var(--gold);
+    border-color: var(--accent);
 }
 
 /* 警告提示 */
 .alert-warning {
-    background: #fdf8e8;
-    border: 1px solid var(--gold-light);
+    background: var(--warning-tint-bg);
+    border: 1px solid var(--warning-tint-border);
     color: var(--warning);
     padding: 10px 14px;
     border-radius: 4px;
@@ -424,9 +447,10 @@ input, button, select, textarea { font-family: inherit; }
 .result-hero {
     text-align: center;
     padding: 28px;
-    background: linear-gradient(135deg, rgba(13,27,42,.03), rgba(201,168,76,.06));
+    /* 结果主卡片：浅蓝 + 浅橙渐变（与主色 / 金额高亮相呼应） */
+    background: linear-gradient(135deg, rgba(22,93,255,.08), rgba(255,125,0,.06));
     border-radius: 8px;
-    border: 2px solid var(--gold);
+    border: 2px solid var(--accent);
     margin-bottom: 20px;
 }
 .result-hero-label {
@@ -438,7 +462,7 @@ input, button, select, textarea { font-family: inherit; }
 .result-hero-value {
     font-size: 56px;
     font-weight: 700;
-    color: var(--gold);
+    color: var(--highlight);
     letter-spacing: 2px;
     line-height: 1.1;
 }
@@ -471,7 +495,7 @@ input, button, select, textarea { font-family: inherit; }
 .margin-result-display { display: none; text-align: center; padding: 40px 20px; }
 .margin-result-display.show { display: block; animation: resultEnter 300ms ease-out; }
 .margin-result-label { font-size: 14px; color: var(--ink-mid); margin-bottom: 16px; }
-.margin-result-value { font-size: 64px; font-weight: 600; color: var(--gold); letter-spacing: 2px; }
+.margin-result-value { font-size: 64px; font-weight: 600; color: var(--highlight); letter-spacing: 2px; }
 
 /* 详情摘要 */
 .detail-list { margin-top: 16px; }
@@ -515,7 +539,7 @@ input, button, select, textarea { font-family: inherit; }
     font-size: 11px;
 }
 .status-active { background: #edf7f0; color: var(--success); border: 1px solid #a3d9b1; }
-.status-inactive { background: #fdf8e8; color: var(--warning); border: 1px solid var(--gold-light); }
+.status-inactive { background: var(--warning-tint-bg); color: var(--warning); border: 1px solid var(--warning-tint-border); }
 .action-link {
     color: var(--chart-curve);
     cursor: pointer;
@@ -535,8 +559,8 @@ input, button, select, textarea { font-family: inherit; }
     margin-bottom: -2px;
     transition: all .2s;
 }
-.config-tab:hover { color: var(--gold); }
-.config-tab.active { color: var(--gold); border-bottom-color: var(--gold); font-weight: 600; }
+.config-tab:hover { color: var(--accent); }
+.config-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .config-panel { display: none; }
 .config-panel.active { display: block; }
 
@@ -563,7 +587,7 @@ input, button, select, textarea { font-family: inherit; }
    ============================================================ */
 .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
 .compare-table th {
-    background: var(--navy);
+    background: var(--blue-dark);
     color: var(--white);
     padding: 10px 14px;
     text-align: center;
@@ -593,15 +617,15 @@ input, button, select, textarea { font-family: inherit; }
     transition: border-color .2s;
 }
 .compare-table .input-cell input:focus,
-.compare-table .input-cell select:focus { border-color: var(--gold); }
+.compare-table .input-cell select:focus { border-color: var(--accent); }
 .compare-table .input-cell .input-row { gap: 4px; }
 
 /* 方案输入区（按计划启用的区块皮肤类） */
 .scheme-inputs .card-title { margin-bottom: 12px; }
-.scheme-inputs .compare-table th { background: var(--navy-light); }
+.scheme-inputs .compare-table th { background: var(--blue-darker); }
 .scheme-inputs .compare-table td { padding-top: 9px; padding-bottom: 9px; }
 .scheme-inputs .compare-table .input-cell input,
-.scheme-inputs .compare-table .input-cell select { background: #fffdf8; }
+.scheme-inputs .compare-table .input-cell select { background: #F7F8FA; }
 
 /* 分析结果网格 */
 .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
@@ -635,15 +659,16 @@ input, button, select, textarea { font-family: inherit; }
     align-items: center;
     gap: 24px;
     padding: 16px 20px;
-    background: linear-gradient(135deg, rgba(13,27,42,.03), rgba(201,168,76,.06));
-    border: 2px solid var(--gold);
+    /* 定期方案顶部摘要：与 .result-hero 一致的蓝橙弱渐变 */
+    background: linear-gradient(135deg, rgba(22,93,255,.08), rgba(255,125,0,.06));
+    border: 2px solid var(--accent);
     border-radius: 8px;
     margin-bottom: 20px;
     flex-wrap: wrap;
 }
 .ft-summary-item { text-align: center; flex: 1; min-width: 120px; }
 .ft-summary-label { font-size: 12px; color: var(--ink-light); margin-bottom: 4px; }
-.ft-summary-value { font-size: 22px; font-weight: 700; color: var(--gold); }
+.ft-summary-value { font-size: 22px; font-weight: 700; color: var(--highlight); }
 .ft-summary-diff { font-size: 22px; font-weight: 700; }
 
 /* 审批提示 */
@@ -656,7 +681,7 @@ input, button, select, textarea { font-family: inherit; }
 }
 .approval-hint.show { display: block; }
 .approval-hint-team { background: #edf7f0; border: 1px solid #a3d9b1; color: var(--success); }
-.approval-hint-leader { background: #fdf8e8; border: 1px solid var(--gold-light); color: var(--warning); }
+.approval-hint-leader { background: var(--warning-tint-bg); border: 1px solid var(--warning-tint-border); color: var(--warning); }
 .approval-hint-exceed { background: #fdf0ef; border: 1px solid #f5c6c2; color: var(--danger); }
 
 /* 输入轻提示（弱提示，不打断输入） */
@@ -673,8 +698,8 @@ input, button, select, textarea { font-family: inherit; }
 }
 .soft-hint.show { display: block; }
 .soft-hint.warn {
-    border-color: #f1d7a5;
-    background: #fdf8e8;
+    border-color: var(--warning-tint-border);
+    background: var(--warning-tint-bg);
     color: var(--warning);
 }
 
@@ -696,7 +721,7 @@ input, button, select, textarea { font-family: inherit; }
         font-weight: 700;
         text-align: center;
         margin-bottom: 4px;
-        color: #0D1B2A;
+        color: var(--blue);
     }
     .print-time {
         text-align: center;
@@ -709,7 +734,7 @@ input, button, select, textarea { font-family: inherit; }
         font-size: 14px;
         font-weight: 600;
         margin-bottom: 8px;
-        color: #0D1B2A;
+        color: var(--blue);
         border-bottom: 1px solid #ccc;
         padding-bottom: 4px;
     }
@@ -734,7 +759,7 @@ input, button, select, textarea { font-family: inherit; }
         border-radius: 4px;
     }
     .print-result-label { font-size: 11px; color: #666; }
-    .print-result-value { font-size: 22px; font-weight: 700; color: #0D1B2A; }
+    .print-result-value { font-size: 22px; font-weight: 700; color: var(--highlight); }
     .print-chart { text-align: center; margin-top: 12px; }
     .print-chart img { max-width: 100%; max-height: 320px; }
     .print-footer {
@@ -759,7 +784,7 @@ input, button, select, textarea { font-family: inherit; }
     z-index: 1000;
     width: 44px;
     height: 44px;
-    background: var(--navy);
+    background: var(--blue-dark);
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -773,7 +798,7 @@ input, button, select, textarea { font-family: inherit; }
     display: block;
     width: 22px;
     height: 2px;
-    background: var(--gold);
+    background: var(--white);
     transition: all .3s;
 }
 .mobile-menu-btn.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); }
@@ -2069,8 +2094,8 @@ const ToolPriceAdjust = (() => {
         const xScale = (p) => padding + (p - minPrice) / (maxPrice - minPrice) * chartWidth;
         const yScale = (b) => height - padding - (b - minBalance) / (maxBalance - minBalance) * chartHeight;
 
-        /* 5×5 网格线 — 使用 --border 色 */
-        ctx.strokeStyle = '#E8E4DC'; ctx.lineWidth = 1;
+        /* 5×5 网格线（与 CSS --border #E5E6EB 一致） */
+        ctx.strokeStyle = '#E5E6EB'; ctx.lineWidth = 1;
         for (let i = 0; i <= 5; i++) {
             const y = padding + (chartHeight / 5) * i;
             ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(width - padding, y); ctx.stroke();
@@ -2080,13 +2105,13 @@ const ToolPriceAdjust = (() => {
             ctx.beginPath(); ctx.moveTo(x, padding); ctx.lineTo(x, height - padding); ctx.stroke();
         }
 
-        /* 坐标轴 */
-        ctx.strokeStyle = '#1A1A2E'; ctx.lineWidth = 2;
+        /* 坐标轴主线（与 CSS --ink #1D2129 一致） */
+        ctx.strokeStyle = '#1D2129'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(padding, padding); ctx.lineTo(padding, height - padding);
         ctx.lineTo(width - padding, height - padding); ctx.stroke();
 
-        /* Y 轴标签（余额） */
-        ctx.font = '11px sans-serif'; ctx.fillStyle = '#4A4A6A'; ctx.textAlign = 'right';
+        /* Y 轴标签（余额，--ink-mid） */
+        ctx.font = '11px sans-serif'; ctx.fillStyle = '#4E5969'; ctx.textAlign = 'right';
         for (let i = 0; i <= 5; i++) {
             const balance = minBalance + (maxBalance - minBalance) * (5 - i) / 5;
             const y = padding + (chartHeight / 5) * i;
@@ -2101,8 +2126,8 @@ const ToolPriceAdjust = (() => {
             ctx.fillText(price.toFixed(2), x, height - padding + 20);
         }
 
-        /* 曲线 — 使用 --chart-curve 色 */
-        ctx.strokeStyle = '#2C5F8A'; ctx.lineWidth = 2;
+        /* 曲线 — 与 --blue / --chart-curve 一致 */
+        ctx.strokeStyle = '#165DFF'; ctx.lineWidth = 2;
         ctx.beginPath();
         data.forEach((point, index) => {
             const x = xScale(point.price), y = yScale(point.balance);
@@ -2110,32 +2135,32 @@ const ToolPriceAdjust = (() => {
         });
         ctx.stroke();
 
-        /* 当前状态点 — --success 色 */
-        ctx.fillStyle = '#2D7D46';
+        /* 当前状态点（--success） */
+        ctx.fillStyle = '#00B42A';
         ctx.beginPath(); ctx.arc(xScale(currentPrice), yScale(avgBalance), 6, 0, Math.PI * 2); ctx.fill();
 
-        /* 目标状态点 — --danger 色 */
-        ctx.fillStyle = '#C0392B';
+        /* 目标状态点（金额高亮 --highlight） */
+        ctx.fillStyle = '#FF7D00';
         ctx.beginPath(); ctx.arc(xScale(targetPrice), yScale(targetBalance), 6, 0, Math.PI * 2); ctx.fill();
 
         /* 数据标签 */
         ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillStyle = '#2D7D46';
+        ctx.fillStyle = '#00B42A';
         ctx.fillText(avgBalance.toFixed(0), xScale(currentPrice), yScale(avgBalance) - 12);
-        ctx.fillStyle = '#C0392B';
+        ctx.fillStyle = '#FF7D00';
         ctx.fillText(targetBalance.toFixed(0), xScale(targetPrice), yScale(targetBalance) - 12);
 
         /* 轴标题 */
-        ctx.fillStyle = '#4A4A6A'; ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#4E5969'; ctx.font = '12px sans-serif';
         ctx.fillText('价格 (%)', width / 2, height - 10);
         ctx.save(); ctx.translate(20, height / 2); ctx.rotate(-Math.PI / 2);
         ctx.fillText('余额 (万元)', 0, 0); ctx.restore();
 
-        /* 右上角图例 */
-        ctx.fillStyle = '#2D7D46'; ctx.textAlign = 'left';
+        /* 右上角图例（成功绿 / 金额橙） */
+        ctx.fillStyle = '#00B42A'; ctx.textAlign = 'left';
         ctx.beginPath(); ctx.arc(width - 120, 30, 5, 0, Math.PI * 2); ctx.fill();
         ctx.fillText('当前状态', width - 110, 34);
-        ctx.fillStyle = '#C0392B';
+        ctx.fillStyle = '#FF7D00';
         ctx.beginPath(); ctx.arc(width - 120, 50, 5, 0, Math.PI * 2); ctx.fill();
         ctx.fillText('目标状态', width - 110, 54);
     }
@@ -2742,8 +2767,8 @@ const ToolFixedTerm = (() => {
         const xScale = h => pad + h * cW;
         const yScale = y => H - pad - ((y - minY) / yRange) * cH;
 
-        /* 网格 */
-        ctx.strokeStyle = '#E8E4DC'; ctx.lineWidth = 1;
+        /* 网格（与 --border 一致） */
+        ctx.strokeStyle = '#E5E6EB'; ctx.lineWidth = 1;
         for (let i = 0; i <= 5; i++) {
             const y = pad + (cH / 5) * i;
             ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke();
@@ -2751,11 +2776,11 @@ const ToolFixedTerm = (() => {
             ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, H - pad); ctx.stroke();
         }
 
-        /* Y=0 基准线 */
+        /* Y=0 基准线（盈亏分界，用金额橙） */
         const y0 = yScale(0);
         const hasZeroLine = y0 >= pad && y0 <= H - pad;
         if (hasZeroLine) {
-            ctx.strokeStyle = '#C0392B'; ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#FF7D00'; ctx.lineWidth = 1.5;
             ctx.setLineDash([6, 4]);
             ctx.beginPath(); ctx.moveTo(pad, y0); ctx.lineTo(W - pad, y0); ctx.stroke();
             ctx.setLineDash([]);
@@ -2779,8 +2804,8 @@ const ToolFixedTerm = (() => {
             ctx.fillText((h * 100).toFixed(0) + '%', pad + h * cW, H - pad + 18);
         }
 
-        /* 曲线 */
-        ctx.strokeStyle = '#2C5F8A'; ctx.lineWidth = 2;
+        /* 曲线（主色微众蓝） */
+        ctx.strokeStyle = '#165DFF'; ctx.lineWidth = 2;
         ctx.beginPath();
         pts.forEach((p, idx) => {
             const x = xScale(p.x), y = yScale(p.y);
@@ -2788,11 +2813,11 @@ const ToolFixedTerm = (() => {
         });
         ctx.stroke();
 
-        /* 标记点 */
+        /* 标记点（语义色：成功 / 警告 / 方案 B 金额橙） */
         const marks = [
-            { h: derived.teamRatio,   label: '团队长权限', color: '#2D7D46' },
-            { h: derived.leaderRatio, label: '分管领导权限', color: '#B7791F' },
-            { h: rB,                  label: '方案B',      color: '#C9A84C' }
+            { h: derived.teamRatio,   label: '团队长权限', color: '#00B42A' },
+            { h: derived.leaderRatio, label: '分管领导权限', color: '#8F5610' },
+            { h: rB,                  label: '方案B',      color: '#FF7D00' }
         ];
 
         /*
@@ -2800,7 +2825,7 @@ const ToolFixedTerm = (() => {
          * 仅当 beRatio 有效且 Y=0 基准线落在可视区时标记，避免越界点误导。
          */
         if (Number.isFinite(beRatio) && beRatio > 0 && beRatio < 1 && hasZeroLine) {
-            marks.push({ h: beRatio, label: '盈亏平衡点', color: '#C0392B', fixedY: 0 });
+            marks.push({ h: beRatio, label: '盈亏平衡点', color: '#FF7D00', fixedY: 0 });
         }
 
         marks.forEach(m => {
@@ -2818,7 +2843,7 @@ const ToolFixedTerm = (() => {
         });
 
         /* 轴标题 */
-        ctx.fillStyle = '#4A4A6A'; ctx.font = '12px sans-serif';
+        ctx.fillStyle = '#4E5969'; ctx.font = '12px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('保证金比例', W / 2, H - 6);
         ctx.save(); ctx.translate(16, H / 2); ctx.rotate(-Math.PI / 2);
@@ -3014,7 +3039,7 @@ const ToolBreakeven = (() => {
 
         const validPts = pts.filter(p => p.y !== null);
         if (validPts.length === 0) {
-            ctx.font = '14px sans-serif'; ctx.fillStyle = '#8A8AAA'; ctx.textAlign = 'center';
+            ctx.font = '14px sans-serif'; ctx.fillStyle = '#86909C'; ctx.textAlign = 'center';
             ctx.fillText('当前参数下无有效数据点', W / 2, H / 2);
             return;
         }
@@ -3025,8 +3050,8 @@ const ToolBreakeven = (() => {
         const xScale = h => pad + h * cW;
         const yScale = y => H - pad - (y / (maxY * 1.1)) * cH;
 
-        /* 网格 */
-        ctx.strokeStyle = '#E8E4DC'; ctx.lineWidth = 1;
+        /* 网格（与 --border 一致） */
+        ctx.strokeStyle = '#E5E6EB'; ctx.lineWidth = 1;
         for (let i = 0; i <= 5; i++) {
             const y = pad + (cH / 5) * i;
             ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W - pad, y); ctx.stroke();
@@ -3034,13 +3059,13 @@ const ToolBreakeven = (() => {
             ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, H - pad); ctx.stroke();
         }
 
-        /* 坐标轴 */
-        ctx.strokeStyle = '#1A1A2E'; ctx.lineWidth = 2;
+        /* 坐标轴（--ink） */
+        ctx.strokeStyle = '#1D2129'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, H - pad);
         ctx.lineTo(W - pad, H - pad); ctx.stroke();
 
-        /* Y 轴标签 */
-        ctx.font = '11px sans-serif'; ctx.fillStyle = '#4A4A6A'; ctx.textAlign = 'right';
+        /* Y 轴标签（--ink-mid） */
+        ctx.font = '11px sans-serif'; ctx.fillStyle = '#4E5969'; ctx.textAlign = 'right';
         for (let i = 0; i <= 5; i++) {
             const val = maxY * 1.1 * (5 - i) / 5;
             ctx.fillText(val.toFixed(0), pad - 6, pad + (cH / 5) * i + 4);
@@ -3051,8 +3076,8 @@ const ToolBreakeven = (() => {
             ctx.fillText((i * 20) + '%', pad + (cW / 5) * i, H - pad + 18);
         }
 
-        /* 折线（空值断开） */
-        ctx.strokeStyle = '#2C5F8A'; ctx.lineWidth = 2;
+        /* 折线（空值断开，主色微众蓝） */
+        ctx.strokeStyle = '#165DFF'; ctx.lineWidth = 2;
         ctx.beginPath();
         let started = false;
         pts.forEach(p => {
@@ -3066,14 +3091,14 @@ const ToolBreakeven = (() => {
         /* 目标比例标记点 */
         const tPt = pts.find(p => Math.abs(p.x - targetRatio) < 0.005 && p.y !== null);
         if (tPt) {
-            ctx.fillStyle = '#C9A84C';
+            ctx.fillStyle = '#165DFF';
             ctx.beginPath(); ctx.arc(xScale(tPt.x), yScale(tPt.y), 5, 0, Math.PI * 2); ctx.fill();
-            ctx.font = '11px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#C9A84C';
+            ctx.font = '11px sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#165DFF';
             ctx.fillText('目标比例', xScale(tPt.x), yScale(tPt.y) - 10);
         }
 
         /* 轴标题 */
-        ctx.fillStyle = '#4A4A6A'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#4E5969'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText('保证金比例（活期情景）', W / 2, H - 6);
         ctx.save(); ctx.translate(16, H / 2); ctx.rotate(-Math.PI / 2);
         ctx.fillText('未来三个月开票金额 (万)', 0, 0); ctx.restore();
