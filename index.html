@@ -638,6 +638,99 @@ input, button, select, textarea { font-family: inherit; }
     color: var(--ink-light);
     margin-top: 4px;
 }
+/* 开关控件 */
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-label {
+    font-size: 13px;
+    color: var(--ink);
+}
+.toggle-label small {
+    display: block;
+    font-size: 11px;
+    color: var(--ink-light);
+    margin-top: 2px;
+}
+.toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background .2s;
+}
+.toggle-track::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 16px;
+    height: 16px;
+    background: var(--white);
+    border-radius: 50%;
+    transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.toggle-switch input:checked + .toggle-track { background: var(--accent); }
+.toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+.toggle-section {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--ivory);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+.toggle-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-mid);
+    margin-bottom: 12px;
+}
+/* 自定义 tooltip */
+.custom-tooltip-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.custom-tooltip-box {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--white);
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 999;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25);
+}
+.custom-tooltip-box::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--ink);
+}
+.custom-tooltip-wrap:hover .custom-tooltip-box { display: block; }
 /* 字段错误提示 */
 .field-error {
     display: none;
@@ -1339,7 +1432,10 @@ input, button, select, textarea { font-family: inherit; }
                             </td>
                             <td class="input-cell">
                                 <div class="input-row">
-                                    <input type="number" id="ft-ratioA" placeholder="如：98" step="1" min="0" max="100" oninput="ToolFixedTerm.recalc()">
+                                    <span class="custom-tooltip-wrap" id="ft-ratioA-wrap">
+                                        <input type="number" id="ft-ratioA" placeholder="如：98" step="1" min="0" max="100" oninput="ToolFixedTerm.recalc()" value="100" disabled>
+                                        <span class="custom-tooltip-box" id="ft-ratioA-tip">当前方案为全额保证金方案</span>
+                                    </span>
                                     <span class="input-suffix">%</span>
                                 </div>
                             </td>
@@ -1415,6 +1511,10 @@ input, button, select, textarea { font-family: inherit; }
                     <div class="analysis-item">
                         <div class="analysis-item-label">开票金额不变，达到方案A收益的保证金比例</div>
                         <div class="analysis-item-value" id="ft-beRatio">--</div>
+                    </div>
+                    <div class="analysis-item ft-jbf-row" style="display:none;">
+                        <div class="analysis-item-label">对应基本法系数</div>
+                        <div class="analysis-item-value" id="ft-jbfAmount">--</div>
                     </div>
                 </div>
                 <div class="approval-hint approval-hint-team" id="ft-hint-team"></div>
@@ -1805,6 +1905,31 @@ input, button, select, textarea { font-family: inherit; }
                         </div>
                     </details>
 
+                    <!-- 承兑-定期方案 显示控制 -->
+                    <div class="toggle-section">
+                        <div class="toggle-section-title">承兑-定期方案 显示控制</div>
+                        <div class="toggle-row">
+                            <div class="toggle-label">
+                                显示「对应基本法系数」
+                                <small>在绝对收益分析中显示基本法系数计算结果</small>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="cfg-showJbf" onchange="ConfigPanel.saveDisplayToggles()">
+                                <span class="toggle-track"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-row">
+                            <div class="toggle-label">
+                                锁定方案A保证金比例为 100%
+                                <small>开启后方案A保证金比例固定为全额保证金，不可修改</small>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="cfg-lockRatioA" checked onchange="ConfigPanel.saveDisplayToggles()">
+                                <span class="toggle-track"></span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div style="margin-top:28px;">
                         <div class="card-title">历史配置记录</div>
                         <table class="history-table">
@@ -1955,8 +2080,16 @@ const Storage = (() => {
     /** 获取承兑参数历史 */
     function getChengduiHistory() { return get('chengduiConfigHistory', []); }
 
+    /** 获取显示开关配置 */
+    function getDisplayToggles() {
+        return { showJbf: false, lockRatioA: true, ...get('displayToggles', {}) };
+    }
+
+    /** 保存显示开关配置 */
+    function setDisplayToggles(data) { set('displayToggles', data); }
+
     return { get, set, getFTP, getPriceAdjustConfig, getFTPHistory, getPriceAdjustHistory,
-             getChengduiConfig, getChengduiHistory,
+             getChengduiConfig, getChengduiHistory, getDisplayToggles, setDisplayToggles,
              DEFAULT_FTP, DEFAULT_PRICE_ADJUST, DEFAULT_CHENGDUI };
 })();
 /* ============================================================
@@ -2356,6 +2489,7 @@ const ConfigPanel = (() => {
         _loadPAHistory();
         _loadChengduiForm();
         _loadChengduiHistory();
+        _loadDisplayToggles();
     }
 
     /** 切换配置子 Tab */
@@ -2777,11 +2911,56 @@ const ConfigPanel = (() => {
         URL.revokeObjectURL(url);
     }
 
+    /** 保存显示开关（由 onchange 触发） */
+    function saveDisplayToggles() {
+        if (!Auth.isAdmin()) return;
+        const showJbf   = document.getElementById('cfg-showJbf').checked;
+        const lockRatioA = document.getElementById('cfg-lockRatioA').checked;
+        Storage.setDisplayToggles({ showJbf, lockRatioA });
+        /* 立即应用到测算页 */
+        _applyDisplayToggles(showJbf, lockRatioA);
+    }
+
+    /** 加载显示开关到配置面板 */
+    function _loadDisplayToggles() {
+        const t = Storage.getDisplayToggles();
+        const showJbfEl   = document.getElementById('cfg-showJbf');
+        const lockRatioAEl = document.getElementById('cfg-lockRatioA');
+        if (showJbfEl)   showJbfEl.checked   = t.showJbf;
+        if (lockRatioAEl) lockRatioAEl.checked = t.lockRatioA;
+        _applyDisplayToggles(t.showJbf, t.lockRatioA);
+    }
+
+    /** 将开关状态应用到测算页 */
+    function _applyDisplayToggles(showJbf, lockRatioA) {
+        /* 基本法系数行显隐 */
+        document.querySelectorAll('.ft-jbf-row').forEach(el => {
+            el.style.display = showJbf ? '' : 'none';
+        });
+        /* 方案A保证金比例锁定 */
+        const ratioAInput = document.getElementById('ft-ratioA');
+        if (ratioAInput) {
+            if (lockRatioA) {
+                ratioAInput.value    = '100';
+                ratioAInput.disabled = true;
+                const tip = document.getElementById('ft-ratioA-tip');
+                if (tip) tip.style.display = '';
+            } else {
+                ratioAInput.disabled = false;
+                ratioAInput.title    = '';
+                const tip = document.getElementById('ft-ratioA-tip');
+                if (tip) tip.style.display = 'none';
+            }
+            ToolFixedTerm.recalc();
+        }
+    }
+
     return {
         init, switchTab,
         saveFTP, resetFTP, exportFTP,
         savePriceAdjust, resetPriceAdjust, exportPriceAdjust,
         saveChengdui, resetChengdui, exportChengdui,
+        saveDisplayToggles,
         /* 暴露给 onclick 的内部方法 */
         _applyFTPHistory, _deleteFTPHistory,
         _applyPAHistory, _deletePAHistory,
@@ -2932,6 +3111,21 @@ const ToolFixedTerm = (() => {
 
         document.getElementById('ft-beAmount').textContent = isNaN(beAmount) ? '--' : formatWan(beAmount);
         document.getElementById('ft-beRatio').textContent  = isNaN(beRatio)  ? '--' : formatPercent(beRatio);
+
+        /* 基本法系数：B19-(1-B19)*(B8-B9+B11)/(B5*0.25)
+           B19=rB, B8=stratCost, B9=creditFtp, B11=riskCost, B5=spreadDemand */
+        const jbfDenom = derived.spreadDemand * 0.25;
+        const jbf = jbfDenom !== 0
+            ? rB - (1 - rB) * (cfg.stratCost - cfg.creditFtp + cfg.riskCost) / jbfDenom
+            : NaN;
+        const jbfText = isNaN(jbf) ? '--' : jbf.toFixed(4);
+        document.getElementById('ft-jbfAmount').textContent = jbfText;
+
+        /* 根据配置决定是否显示基本法系数行 */
+        const showJbf = Storage.getDisplayToggles().showJbf;
+        document.querySelectorAll('.ft-jbf-row').forEach(el => {
+            el.style.display = showJbf ? '' : 'none';
+        });
 
         /* 审批提示 */
         const teamHint   = document.getElementById('ft-hint-team');
