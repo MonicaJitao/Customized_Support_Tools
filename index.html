@@ -708,13 +708,13 @@ input, button, select, textarea { font-family: inherit; }
 .custom-tooltip-box {
     display: none;
     position: absolute;
-    bottom: calc(100% + 6px);
+    bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
     background: var(--ink);
     color: var(--white);
-    font-size: 13px;
-    padding: 8px 14px;
+    font-size: 14px;
+    padding: 10px 20px;
     border-radius: 6px;
     white-space: nowrap;
     pointer-events: none;
@@ -1432,8 +1432,8 @@ input, button, select, textarea { font-family: inherit; }
                             </td>
                             <td class="input-cell">
                                 <div class="input-row">
-                                    <span class="custom-tooltip-wrap" id="ft-ratioA-wrap">
-                                        <input type="number" id="ft-ratioA" placeholder="如：98" step="1" min="0" max="100" oninput="ToolFixedTerm.recalc()" value="100" disabled>
+                                    <span class="custom-tooltip-wrap" id="ft-ratioA-wrap" style="width:100%;">
+                                        <input type="number" id="ft-ratioA" placeholder="如：98" step="1" min="0" max="100" oninput="ToolFixedTerm.recalc()" value="100" disabled style="width:100%;">
                                         <span class="custom-tooltip-box" id="ft-ratioA-tip">当前方案为全额保证金方案</span>
                                     </span>
                                     <span class="input-suffix">%</span>
