@@ -1172,6 +1172,7 @@ input, button, select, textarea { font-family: inherit; }
                     <!-- 模式 A -->
                     <div id="margin-modeA" class="margin-mode active">
                         <div class="form-group">
+                            <!-- FTP：默认禁用；客户经理只读，管理员在 updateRoleUI 中解锁可编辑 -->
                             <label class="form-label">应用 FTP (%)</label>
                             <input type="number" class="form-input" id="margin-ftpA" step="0.01" min="0" disabled>
                         </div>
@@ -1184,6 +1185,7 @@ input, button, select, textarea { font-family: inherit; }
                     <!-- 模式 B -->
                     <div id="margin-modeB" class="margin-mode" style="display:none;">
                         <div class="form-group">
+                            <!-- 同模式 A：FTP 仅管理员可改 -->
                             <label class="form-label">应用 FTP (%)</label>
                             <input type="number" class="form-input" id="margin-ftpB" step="0.01" min="0" disabled>
                         </div>
@@ -2182,10 +2184,11 @@ const ToolPriceAdjust = (() => {
         const rd = document.getElementById('pa-result');
         rd.classList.add('show');
 
-        document.getElementById('pa-val1').textContent = targetBalance3Month.toFixed(2);
+        /* 调价计算器：目标余额/提额/用款天数对应金额（万元）展示规则——四舍五入取整；利率类字段仍用 toFixed(2) */
+        document.getElementById('pa-val1').textContent = Math.round(targetBalance3Month).toString();
         document.getElementById('pa-val1').style.fontSize = '56px';
-        document.getElementById('pa-val2').textContent = (dailyIncreaseBalance >= 0 ? '+' : '') + dailyIncreaseBalance.toFixed(2) + ' 万元';
-        document.getElementById('pa-val3').textContent = targetBalanceByDays.toFixed(2) + ' 万元';
+        document.getElementById('pa-val2').textContent = (dailyIncreaseBalance >= 0 ? '+' : '') + Math.round(dailyIncreaseBalance) + ' 万元';
+        document.getElementById('pa-val3').textContent = Math.round(targetBalanceByDays) + ' 万元';
         document.getElementById('pa-detailType').textContent = (customerType === 'Y' ? '520客户' : '非520客户');
         document.getElementById('pa-detailCurrent').textContent = currentPrice.toFixed(2) + '%';
         document.getElementById('pa-detailTarget').textContent = targetPrice.toFixed(2) + '%';
@@ -3183,8 +3186,9 @@ const ToolBreakeven = (() => {
         document.getElementById('be-empty').style.display = 'none';
         document.getElementById('be-result').classList.add('show');
 
-        document.getElementById('be-futureAmount').textContent = futureAmount.toFixed(2);
-        document.getElementById('be-increase').textContent     = (increase >= 0 ? '+' : '') + increase.toFixed(2) + ' 万';
+        /* 收益打平测算：未来三月均开票、需提升开票金额（万）取整；保证金净 FTP 收益率等仍走 formatPercent 保留两位 */
+        document.getElementById('be-futureAmount').textContent = Math.round(futureAmount).toString();
+        document.getElementById('be-increase').textContent     = (increase >= 0 ? '+' : '') + Math.round(increase) + ' 万';
         document.getElementById('be-spread').textContent       = formatPercent(spread);
 
         document.getElementById('be-d-currentRatio').textContent  = currentRatioP.toFixed(0) + '%';
