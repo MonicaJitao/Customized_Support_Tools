@@ -2835,8 +2835,8 @@ const ToolFixedTerm = (() => {
             return;
         }
 
-        if (ratioB <= 0 || ratioB >= 100 || ratioA <= 0 || ratioA >= 100) {
-            _showSoftHint('保证金比例须大于 0% 且小于 100%。');
+        if (ratioB <= 0 || ratioB > 100 || ratioA <= 0 || ratioA > 100) {
+            _showSoftHint('保证金比例须大于 0% 且不超过 100%。');
             _clearResults();
             return;
         }
