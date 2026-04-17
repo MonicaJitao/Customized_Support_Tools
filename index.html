@@ -1870,6 +1870,13 @@ input, button, select, textarea { font-family: inherit; }
                                 <div class="field-error" id="err-cd-teamLimit"></div>
                             </div>
                         </div>
+                        <div class="form-row-inline">
+                            <label class="form-label-inline"><span class="required">*</span> 方案A目标保证金比例</label>
+                            <div class="form-control-inline">
+                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ratioA" step="1" min="0" max="100" required><span class="input-suffix">%</span></div>     
+                                <div class="field-error" id="err-cd-ratioA"></div>
+                            </div>
+                        </div>
                         <div class="card-title" style="margin-top:20px;padding-top:16px;">只读派生参数</div>
                         <div class="form-row-inline">
                             <label class="form-label-inline">活期净FTP收益率</label>
@@ -1944,16 +1951,6 @@ input, button, select, textarea { font-family: inherit; }
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="cfg-showJbf" onchange="ConfigPanel.saveDisplayToggles()">
-                                <span class="toggle-track"></span>
-                            </label>
-                        </div>
-                        <div class="toggle-row">
-                            <div class="toggle-label">
-                                锁定方案A保证金比例为 100%
-                                <small>开启后方案A保证金比例固定为全额保证金，不可修改</small>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="cfg-lockRatioA" checked onchange="ConfigPanel.saveDisplayToggles()">
                                 <span class="toggle-track"></span>
                             </label>
                         </div>
@@ -2217,6 +2214,7 @@ const Storage = (() => {
         creditFtp:  0.0213,
         riskCost:   0.0031,
         teamLimit:  0.045,
+        ratioA:     100,
         operator:   '系统默认',
         operateTime: new Date().toISOString(),
         status: 'active'
@@ -2230,7 +2228,7 @@ const Storage = (() => {
 
     /** 获取显示开关配置 */
     function getDisplayToggles() {
-        return { showJbf: false, lockRatioA: true, ...get('displayToggles', {}) };
+        return { showJbf: false, ...get('displayToggles', {}) };
     }
 
     /** 保存显示开关配置 */
@@ -2915,9 +2913,10 @@ const ConfigPanel = (() => {
         const creditFtp  = parseFloat(document.getElementById('cfg-cd-creditFtp').value);
         const riskCost   = parseFloat(document.getElementById('cfg-cd-riskCost').value);
         const teamLimit  = parseFloat(document.getElementById('cfg-cd-teamLimit').value);
+        const ratioA     = parseFloat(document.getElementById('cfg-cd-ratioA').value);
 
         const cdErrIds = ['err-cd-ftpIncome','err-cd-ftpDemand','err-cd-ftp3m','err-cd-ftp6m',
-                          'err-cd-stratCost','err-cd-creditFtp','err-cd-riskCost','err-cd-teamLimit'];
+                          'err-cd-stratCost','err-cd-creditFtp','err-cd-riskCost','err-cd-teamLimit','err-cd-ratioA'];
         cdErrIds.forEach(id => _fieldError(id, null));
         let valid = true;
         const cdFields = [
@@ -2929,6 +2928,7 @@ const ConfigPanel = (() => {
             [creditFtp,  'err-cd-creditFtp',  '信贷FTP必须大于 0'],
             [riskCost,   'err-cd-riskCost',   '请输入有效的风险成本（≥ 0）'],
             [teamLimit,  'err-cd-teamLimit',  '团队长权限必须大于 0'],
+            [ratioA,     'err-cd-ratioA',     '方案A保证金比例须在 0-100 之间'],
         ];
         cdFields.forEach(([val, errId, msg]) => {
             if (isNaN(val)) { _fieldError(errId, '请输入有效数字'); valid = false; }
@@ -2940,6 +2940,7 @@ const ConfigPanel = (() => {
             if (teamLimit > 0 && creditFtp > 0 && teamLimit < creditFtp) {
                 _fieldError('err-cd-teamLimit', '团队长权限不应低于信贷FTP'); valid = false;
             }
+            if (ratioA < 0 || ratioA > 100) { _fieldError('err-cd-ratioA', '方案A保证金比例须在 0-100 之间'); valid = false; }
         }
         if (!valid) return;
 
@@ -2953,6 +2954,7 @@ const ConfigPanel = (() => {
             creditFtp:  toRatio(creditFtp),
             riskCost:   toRatio(riskCost),
             teamLimit:  toRatio(teamLimit),
+            ratioA:     ratioA,
             operator:   '管理员',
             operateTime: new Date().toISOString(),
             status: 'active'
@@ -2988,6 +2990,7 @@ const ConfigPanel = (() => {
         document.getElementById('cfg-cd-creditFtp').value  = toPercent(cfg.creditFtp).toFixed(2);
         document.getElementById('cfg-cd-riskCost').value   = toPercent(cfg.riskCost).toFixed(2);
         document.getElementById('cfg-cd-teamLimit').value  = toPercent(cfg.teamLimit).toFixed(2);
+        document.getElementById('cfg-cd-ratioA').value     = cfg.ratioA !== undefined ? cfg.ratioA : 100;
         _renderChengduiDerived();
     }
 
@@ -3060,6 +3063,7 @@ const ConfigPanel = (() => {
         document.getElementById('cfg-cd-creditFtp').value  = toPercent(cfg.creditFtp).toFixed(2);
         document.getElementById('cfg-cd-riskCost').value   = toPercent(cfg.riskCost).toFixed(2);
         document.getElementById('cfg-cd-teamLimit').value  = toPercent(cfg.teamLimit).toFixed(2);
+        document.getElementById('cfg-cd-ratioA').value     = cfg.ratioA !== undefined ? cfg.ratioA : 100;
         _renderChengduiDerived();
     }
 
@@ -3092,43 +3096,33 @@ const ConfigPanel = (() => {
     /** 保存显示开关（由 onchange 触发） */
     function saveDisplayToggles() {
         if (!Auth.isAdmin()) return;
-        const showJbf   = document.getElementById('cfg-showJbf').checked;
-        const lockRatioA = document.getElementById('cfg-lockRatioA').checked;
-        Storage.setDisplayToggles({ showJbf, lockRatioA });
-        /* 立即应用到测算页 */
-        _applyDisplayToggles(showJbf, lockRatioA);
+        const showJbf = document.getElementById('cfg-showJbf').checked;
+        Storage.setDisplayToggles({ showJbf });
+        _applyDisplayToggles(showJbf);
     }
 
     /** 加载显示开关到配置面板 */
     function _loadDisplayToggles() {
         const t = Storage.getDisplayToggles();
-        const showJbfEl   = document.getElementById('cfg-showJbf');
-        const lockRatioAEl = document.getElementById('cfg-lockRatioA');
-        if (showJbfEl)   showJbfEl.checked   = t.showJbf;
-        if (lockRatioAEl) lockRatioAEl.checked = t.lockRatioA;
-        _applyDisplayToggles(t.showJbf, t.lockRatioA);
+        const showJbfEl = document.getElementById('cfg-showJbf');
+        if (showJbfEl) showJbfEl.checked = t.showJbf;
+        _applyDisplayToggles(t.showJbf);
     }
 
     /** 将开关状态应用到测算页 */
-    function _applyDisplayToggles(showJbf, lockRatioA) {
+    function _applyDisplayToggles(showJbf) {
         /* 基本法系数行显隐 */
         document.querySelectorAll('.ft-jbf-row').forEach(el => {
             el.style.display = showJbf ? '' : 'none';
         });
-        /* 方案A保证金比例锁定 */
+        /* 方案A保证金比例：始终 disabled，值来自承兑参数配置 */
         const ratioAInput = document.getElementById('ft-ratioA');
         if (ratioAInput) {
-            if (lockRatioA) {
-                ratioAInput.value    = '100';
-                ratioAInput.disabled = true;
-                const tip = document.getElementById('ft-ratioA-tip');
-                if (tip) tip.style.display = '';
-            } else {
-                ratioAInput.disabled = false;
-                ratioAInput.title    = '';
-                const tip = document.getElementById('ft-ratioA-tip');
-                if (tip) tip.style.display = 'none';
-            }
+            const cfg = Storage.getChengduiConfig();
+            ratioAInput.value    = cfg.ratioA !== undefined ? cfg.ratioA : 100;
+            ratioAInput.disabled = true;
+            const tip = document.getElementById('ft-ratioA-tip');
+            if (tip) tip.style.display = '';
             ToolFixedTerm.recalc();
         }
     }
@@ -3349,7 +3343,7 @@ const ToolFixedTerm = (() => {
         const jbf = jbfDenom !== 0
             ? rB - (1 - rB) * (cfg.stratCost - cfg.creditFtp + cfg.riskCost) / jbfDenom
             : NaN;
-        const jbfText = isNaN(jbf) ? '--' : jbf.toFixed(4);
+        const jbfText = isNaN(jbf) ? '--' : (jbf * 100).toFixed(2) + '%';
         document.getElementById('ft-jbfAmount').textContent = jbfText;
 
         /* 根据配置决定是否显示基本法系数行 */
