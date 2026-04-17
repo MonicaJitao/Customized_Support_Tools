@@ -1523,6 +1523,23 @@ input, button, select, textarea { font-family: inherit; }
                         </tr>
                     </tbody>
                 </table>
+                <!-- 共用参数（两方案相同） -->
+                <div style="display:flex;gap:16px;margin-top:12px;">
+                    <div style="flex:1;">
+                        <label class="form-label" style="font-size:13px;">优化后风险成本</label>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="ft-riskCostInput" step="0.01" min="0" placeholder="如：0.31">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
+                    <div style="flex:1;">
+                        <label class="form-label" style="font-size:13px;">团队长权限</label>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="ft-teamLimitInput" step="0.01" min="0" placeholder="如：4.50">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
+                </div>
                 <!-- 改参数后需点击计算（与保证金/调价工具一致；统计埋点也在此入口） -->
                 <button type="button" class="btn btn-primary btn-block" onclick="ToolFixedTerm.calculate()">计算</button>
             </div>
@@ -1541,6 +1558,10 @@ input, button, select, textarea { font-family: inherit; }
                     <div class="analysis-item ft-jbf-row" style="display:none;">
                         <div class="analysis-item-label">对应基本法系数</div>
                         <div class="analysis-item-value" id="ft-jbfAmount">--</div>
+                    </div>
+                    <div class="analysis-item">
+                        <div class="analysis-item-label">分管领导权限</div>
+                        <div class="analysis-item-value" id="ft-leaderLimit">--</div>
                     </div>
                 </div>
                 <div class="approval-hint approval-hint-team" id="ft-hint-team"></div>
@@ -1607,6 +1628,20 @@ input, button, select, textarea { font-family: inherit; }
                             <option value="6个月定期">6个月定期</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">优化后风险成本</label>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="be-riskCostInput" step="0.01" min="0" placeholder="如：0.31">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">团队长权限</label>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="be-teamLimitInput" step="0.01" min="0" placeholder="如：4.50">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
                     <!-- 与保证金/调价工具一致：点击「计算」后再出结果并写入统计 -->
                     <button type="button" class="btn btn-primary btn-block" onclick="ToolBreakeven.calculate()">计算</button>
                 </div>
@@ -1639,6 +1674,7 @@ input, button, select, textarea { font-family: inherit; }
                             <div class="detail-row"><span class="detail-row-label">目标保证金比例</span><span class="detail-row-value" id="be-d-targetRatio">--</span></div>
                             <div class="detail-row"><span class="detail-row-label">历史均敞口</span><span class="detail-row-value" id="be-d-exposure">--</span></div>
                             <div class="detail-row"><span class="detail-row-label">历史均保证金</span><span class="detail-row-value" id="be-d-margin">--</span></div>
+                            <div class="detail-row"><span class="detail-row-label">分管领导权限</span><span class="detail-row-value" id="be-leaderLimit">--</span></div>
                         </div>
                         <div class="chart-wrap"><canvas id="be-chart"></canvas></div>
                     </div>
@@ -3123,6 +3159,15 @@ const ConfigPanel = (() => {
             ratioAInput.disabled = true;
             const tip = document.getElementById('ft-ratioA-tip');
             if (tip) tip.style.display = '';
+            /* 预填风险成本和团队长权限（仅当输入框为空时） */
+            const ftRisk = document.getElementById('ft-riskCostInput');
+            const ftTeam = document.getElementById('ft-teamLimitInput');
+            if (ftRisk && ftRisk.value === '') ftRisk.value = toPercent(cfg.riskCost).toFixed(2);
+            if (ftTeam && ftTeam.value === '') ftTeam.value = toPercent(cfg.teamLimit).toFixed(2);
+            const beRisk = document.getElementById('be-riskCostInput');
+            const beTeam = document.getElementById('be-teamLimitInput');
+            if (beRisk && beRisk.value === '') beRisk.value = toPercent(cfg.riskCost).toFixed(2);
+            if (beTeam && beTeam.value === '') beTeam.value = toPercent(cfg.teamLimit).toFixed(2);
             ToolFixedTerm.recalc();
         }
     }
@@ -3250,7 +3295,20 @@ const ToolFixedTerm = (() => {
         }
 
         const cfg     = Storage.getChengduiConfig();
-        const derived = getChengduiDerived(cfg);
+
+        /* 读取页面输入的风险成本和团队长权限（百分数 → 小数），回退到配置默认值 */
+        const riskCostInput  = parseFloat(document.getElementById('ft-riskCostInput').value);
+        const teamLimitInput = parseFloat(document.getElementById('ft-teamLimitInput').value);
+        if (isNaN(riskCostInput) || isNaN(teamLimitInput)) {
+            _showSoftHint('请填写优化后风险成本和团队长权限。');
+            _clearResults();
+            return;
+        }
+        const effectiveCfg = Object.assign({}, cfg, {
+            riskCost:  toRatio(riskCostInput),
+            teamLimit: toRatio(teamLimitInput)
+        });
+        const derived = getChengduiDerived(effectiveCfg);
 
         /* 百分数 → 小数 */
         const rB = toRatio(ratioB);
@@ -3261,31 +3319,31 @@ const ToolFixedTerm = (() => {
         const spreadA = getDepositSpread(depositA, derived);
 
         /* 最低贷款定价 */
-        const minPriceB = calcMinPriceByRatio(rB, cfg.creditFtp);
-        const minPriceA = calcMinPriceByRatio(rA, cfg.creditFtp);
+        const minPriceB = calcMinPriceByRatio(rB, effectiveCfg.creditFtp);
+        const minPriceA = calcMinPriceByRatio(rA, effectiveCfg.creditFtp);
 
         /* 单票收益 */
-        const revenueB = _calcRevenue(amountB, rB, spreadB, cycleB, cfg.stratCost, cfg.creditFtp, cfg.riskCost);
-        const revenueA = _calcRevenue(amountA, rA, spreadA, cycleA, cfg.stratCost, cfg.creditFtp, cfg.riskCost);
+        const revenueB = _calcRevenue(amountB, rB, spreadB, cycleB, effectiveCfg.stratCost, effectiveCfg.creditFtp, effectiveCfg.riskCost);
+        const revenueA = _calcRevenue(amountA, rA, spreadA, cycleA, effectiveCfg.stratCost, effectiveCfg.creditFtp, effectiveCfg.riskCost);
         const diff = revenueB - revenueA;
 
         /* 绝对收益分析 */
         const unitRevB = rB * spreadB * cycleB / 12
-                       - (1 - rB) * (cfg.stratCost - cfg.creditFtp) * cycleB / 12
-                       - (1 - rB) * cfg.riskCost * cycleB / 12;
+                       - (1 - rB) * (effectiveCfg.stratCost - effectiveCfg.creditFtp) * cycleB / 12
+                       - (1 - rB) * effectiveCfg.riskCost * cycleB / 12;
         const beAmount = unitRevB !== 0 ? revenueA / unitRevB : NaN;
 
-        const beRatioDenom = cycleB * amountB * (cfg.stratCost - cfg.creditFtp + cfg.riskCost + spreadB);
+        const beRatioDenom = cycleB * amountB * (effectiveCfg.stratCost - effectiveCfg.creditFtp + effectiveCfg.riskCost + spreadB);
         const beRatio = beRatioDenom !== 0
-            ? (12 * revenueA + cycleB * amountB * (cfg.stratCost - cfg.creditFtp + cfg.riskCost)) / beRatioDenom
+            ? (12 * revenueA + cycleB * amountB * (effectiveCfg.stratCost - effectiveCfg.creditFtp + effectiveCfg.riskCost)) / beRatioDenom
             : NaN;
 
         /* 更新 DOM */
         _clearSoftHint();
         _updateTable(minPriceB, minPriceA, spreadB, spreadA, revenueB, revenueA, diff);
         _updateSummary(revenueB, revenueA, diff);
-        _updateAnalysis(beAmount, beRatio, rB, derived, cfg);
-        _drawChart(amountB, spreadB, cycleB, revenueA, rB, beRatio, derived, cfg);
+        _updateAnalysis(beAmount, beRatio, rB, derived, effectiveCfg);
+        _drawChart(amountB, spreadB, cycleB, revenueA, rB, beRatio, derived, effectiveCfg);
 
         lastResult = {
             ratioB, ratioA, depositB, depositA, cycleB, cycleA, amountB, amountA,
@@ -3345,6 +3403,8 @@ const ToolFixedTerm = (() => {
             : NaN;
         const jbfText = isNaN(jbf) ? '--' : (jbf * 100).toFixed(2) + '%';
         document.getElementById('ft-jbfAmount').textContent = jbfText;
+
+        document.getElementById('ft-leaderLimit').textContent = formatPercent(derived.leaderLimit);
 
         /* 根据配置决定是否显示基本法系数行 */
         const showJbf = Storage.getDisplayToggles().showJbf;
@@ -3563,24 +3623,36 @@ const ToolBreakeven = (() => {
         }
 
         const cfg     = Storage.getChengduiConfig();
-        const derived = getChengduiDerived(cfg);
+
+        /* 读取页面输入的风险成本和团队长权限 */
+        const riskCostInput  = parseFloat(document.getElementById('be-riskCostInput').value);
+        const teamLimitInput = parseFloat(document.getElementById('be-teamLimitInput').value);
+        if (isNaN(riskCostInput) || isNaN(teamLimitInput)) {
+            _showSoftHint('请填写优化后风险成本和团队长权限。');
+            _showEmpty(); return;
+        }
+        const effectiveCfg = Object.assign({}, cfg, {
+            riskCost:  toRatio(riskCostInput),
+            teamLimit: toRatio(teamLimitInput)
+        });
+        const derived = getChengduiDerived(effectiveCfg);
 
         const currentRatio = toRatio(currentRatioP);
         const targetRatio  = toRatio(targetRatioP);
         const loanRatio    = toRatio(loanRatioP);
 
-        const currentPrice = calcMinPriceByRatio(currentRatio, cfg.creditFtp);
+        const currentPrice = calcMinPriceByRatio(currentRatio, effectiveCfg.creditFtp);
         const spread       = getDepositSpread(depositType, derived);
 
         /* 核心公式（冻结，与 Excel B25 完全一致） */
         const numerator = (avgMargin * spread)
-                        - (avgExposure * (cfg.stratCost - cfg.creditFtp))
-                        - (avgExposure * cfg.riskCost);
+                        - (avgExposure * (effectiveCfg.stratCost - effectiveCfg.creditFtp))
+                        - (avgExposure * effectiveCfg.riskCost);
 
         const denominator = (targetRatio * spread)
-                          - ((1 - targetRatio) * (cfg.stratCost - cfg.creditFtp))
-                          - ((1 - targetRatio) * cfg.riskCost)
-                          - ((currentRatio - targetRatio) * (currentPrice - cfg.stratCost - cfg.riskCost) * loanRatio);
+                          - ((1 - targetRatio) * (effectiveCfg.stratCost - effectiveCfg.creditFtp))
+                          - ((1 - targetRatio) * effectiveCfg.riskCost)
+                          - ((currentRatio - targetRatio) * (currentPrice - effectiveCfg.stratCost - effectiveCfg.riskCost) * loanRatio);
 
         if (Math.abs(denominator) < 1e-12) {
             _showSoftHint('当前参数组合导致分母为 0，请调整比例或贷款占比。');
@@ -3591,8 +3663,8 @@ const ToolBreakeven = (() => {
         const increase     = futureAmount - (avgExposure + avgMargin);
 
         _clearSoftHint();
-        _showResult(futureAmount, increase, spread, currentRatioP, currentPrice, targetRatioP, avgExposure, avgMargin);
-        _drawChart(avgMargin, avgExposure, loanRatio, currentRatio, currentPrice, targetRatio, derived, cfg);
+        _showResult(futureAmount, increase, spread, currentRatioP, currentPrice, targetRatioP, avgExposure, avgMargin, effectiveCfg, derived);
+        _drawChart(avgMargin, avgExposure, loanRatio, currentRatio, currentPrice, targetRatio, derived, effectiveCfg);
 
         lastResult = {
             currentRatioP, avgExposure, avgMargin, loanRatioP, targetRatioP, depositType,
@@ -3607,7 +3679,7 @@ const ToolBreakeven = (() => {
         if (lastResult) Storage.recordCalc('breakeven', Auth.getSession());
     }
 
-    function _showResult(futureAmount, increase, spread, currentRatioP, currentPrice, targetRatioP, avgExposure, avgMargin) {
+    function _showResult(futureAmount, increase, spread, currentRatioP, currentPrice, targetRatioP, avgExposure, avgMargin, cfg, derived) {
         document.getElementById('be-empty').style.display = 'none';
         document.getElementById('be-result').classList.add('show');
 
@@ -3621,6 +3693,8 @@ const ToolBreakeven = (() => {
         document.getElementById('be-d-targetRatio').textContent   = targetRatioP.toFixed(0) + '%';
         document.getElementById('be-d-exposure').textContent      = avgExposure.toFixed(2) + ' 万';
         document.getElementById('be-d-margin').textContent        = avgMargin.toFixed(2) + ' 万';
+
+        document.getElementById('be-leaderLimit').textContent = formatPercent(derived.leaderLimit);
     }
 
     function _showEmpty() {
