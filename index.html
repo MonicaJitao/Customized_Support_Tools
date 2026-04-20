@@ -1436,6 +1436,23 @@ input, button, select, textarea { font-family: inherit; }
             <div class="card scheme-inputs">
                 <div class="card-title">方案对比输入</div>
                 <div class="soft-hint" id="ft-softHint"></div>
+                <!-- 共用参数（两方案相同）：放在对比表上方，操作顺序为先填共用项再填表内字段；纵向堆叠，间距由外层 margin-bottom:12px（与表）、内层 margin-bottom:8px（两项之间）控制。id 与 ToolFixedTerm 预填/读取绑定，勿改。 -->
+                <div style="margin-bottom:12px;">
+                    <div style="margin-bottom:8px;">
+                        <label class="form-label" style="font-size:13px;">优化后风险成本</label>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="ft-riskCostInput" step="0.01" min="0" placeholder="如：0.31">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:13px;">团队长权限</label>
+                        <div class="input-row">
+                            <input type="number" class="form-input" id="ft-teamLimitInput" step="0.01" min="0" placeholder="如：4.50">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
+                </div>
                 <table class="compare-table">
                     <thead>
                         <tr>
@@ -1523,23 +1540,6 @@ input, button, select, textarea { font-family: inherit; }
                         </tr>
                     </tbody>
                 </table>
-                <!-- 共用参数（两方案相同） -->
-                <div style="display:flex;gap:16px;margin-top:12px;">
-                    <div style="flex:1;">
-                        <label class="form-label" style="font-size:13px;">优化后风险成本</label>
-                        <div class="input-row">
-                            <input type="number" class="form-input" id="ft-riskCostInput" step="0.01" min="0" placeholder="如：0.31">
-                            <span class="input-suffix">%</span>
-                        </div>
-                    </div>
-                    <div style="flex:1;">
-                        <label class="form-label" style="font-size:13px;">团队长权限</label>
-                        <div class="input-row">
-                            <input type="number" class="form-input" id="ft-teamLimitInput" step="0.01" min="0" placeholder="如：4.50">
-                            <span class="input-suffix">%</span>
-                        </div>
-                    </div>
-                </div>
                 <!-- 改参数后需点击计算（与保证金/调价工具一致；统计埋点也在此入口） -->
                 <button type="button" class="btn btn-primary btn-block" onclick="ToolFixedTerm.calculate()">计算</button>
             </div>
