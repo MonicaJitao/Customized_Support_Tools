@@ -776,6 +776,13 @@ input, button, select, textarea { font-family: inherit; }
     flex: 1;
     max-width: 400px;
 }
+/* 参数配置 · 自定义公式：仅放宽「参数 / 运算 / 常量」三行按钮区宽度，不修改全局 .form-control-inline，避免影响 FTP/调价等其它表单 */
+#cfg-formula-param-btns,
+#cfg-formula-op-btns,
+#cfg-formula-number-btns {
+    max-width: none;
+    width: 100%;
+}
 
 /* ============================================================
    承兑工具 — 对比表格
@@ -1566,8 +1573,8 @@ input, button, select, textarea { font-family: inherit; }
                 <!-- 改参数后需点击计算（与保证金/调价工具一致；统计埋点也在此入口） -->
                 <button type="button" class="btn btn-primary btn-block" onclick="ToolFixedTerm.calculate()">计算</button>
             </div>
-            <!-- 分析结果 -->
-            <div class="card" id="ft-analysis-card" style="display:none;">
+            <!-- 定期页测算结果：摘要条 ft-summary 独立；下方「绝对收益分析 + 自定义指标 + 曲线图」合并为一块白框，与导出截图区域 ft-result-area 配合不变 -->
+            <div class="card" id="ft-result-card" style="display:none;">
                 <div class="card-title">绝对收益分析</div>
                 <div class="analysis-grid">
                     <div class="analysis-item">
@@ -1590,12 +1597,9 @@ input, button, select, textarea { font-family: inherit; }
                 <div class="approval-hint approval-hint-team" id="ft-hint-team"></div>
                 <div class="approval-hint approval-hint-leader" id="ft-hint-leader"></div>
                 <div class="approval-hint approval-hint-exceed" id="ft-hint-exceed"></div>
-            </div>
-            <!-- 自定义公式结果：仅在用户点击「计算」且 recalc 成功写入 lastResult 后渲染；置于图表上方 -->
-            <div id="ft-custom-results" class="custom-formula-results"></div>
-            <!-- 图表 -->
-            <div class="card" id="ft-chart-card" style="display:none;">
-                <div class="card-title">保证金比例-收益曲线（相对方案A）</div>
+                <!-- 自定义公式结果：id 不变，CustomFormulas.renderForTool('fixedTerm', 'ft-custom-results') 仍可用；现位于合并白框内 -->
+                <div id="ft-custom-results" class="custom-formula-results"></div>
+                <div class="card-title" style="margin-top:16px;">保证金比例-收益曲线（相对方案A）</div>
                 <div class="chart-wrap"><canvas id="ft-chart"></canvas></div>
             </div>
             </div><!-- /ft-result-area -->
@@ -4361,7 +4365,8 @@ const ToolFixedTerm = (() => {
     }
 
     function _updateAnalysis(beAmount, beRatio, rB, derived, cfg) {
-        const card = document.getElementById('ft-analysis-card');
+        /* 显示合并结果白框（分析区与图表共用 #ft-result-card，避免再拆两张 card） */
+        const card = document.getElementById('ft-result-card');
         card.style.display = 'block';
 
         document.getElementById('ft-beAmount').textContent = isNaN(beAmount) ? '--' : formatWan(beAmount);
@@ -4405,7 +4410,8 @@ const ToolFixedTerm = (() => {
     }
 
     function _drawChart(amountB, spreadB, cycleB, revenueA, rB, beRatio, derived, cfg) {
-        const card = document.getElementById('ft-chart-card');
+        /* 与 _updateAnalysis 同一张合并卡，保证曲线出现时整块结果区已可见 */
+        const card = document.getElementById('ft-result-card');
         card.style.display = 'block';
         const canvas = document.getElementById('ft-chart');
         const ctx = canvas.getContext('2d');
@@ -4521,8 +4527,8 @@ const ToolFixedTerm = (() => {
     function _clearResults() {
         lastResult = null;
         document.getElementById('ft-summary').style.display = 'none';
-        document.getElementById('ft-analysis-card').style.display = 'none';
-        document.getElementById('ft-chart-card').style.display = 'none';
+        /* 一次隐藏整块合并结果（分析 + 自定义指标占位 + 图表） */
+        document.getElementById('ft-result-card').style.display = 'none';
         document.getElementById('exportFixedTermPdfBtn').style.display = 'none';
         ['ft-minPriceB','ft-minPriceA','ft-spreadB','ft-spreadA',
          'ft-revenueB','ft-revenueA','ft-revenueDiff'].forEach(id => {
