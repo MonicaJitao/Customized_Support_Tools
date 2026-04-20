@@ -1445,23 +1445,6 @@ input, button, select, textarea { font-family: inherit; }
             </div>
             <!-- 结果区域 wrapper（用于 html2canvas 截图） -->
             <div id="ft-result-area">
-            <!-- 收益摘要 -->
-            <div class="ft-summary-bar" id="ft-summary" style="display:none;">
-                <div class="ft-summary-item">
-                    <div class="ft-summary-label">方案B单票收益</div>
-                    <div class="ft-summary-value" id="ft-rev-b">--</div>
-                </div>
-                <div style="color:var(--border);font-size:24px;align-self:center;">|</div>
-                <div class="ft-summary-item">
-                    <div class="ft-summary-label">方案A单票收益</div>
-                    <div class="ft-summary-value" id="ft-rev-a">--</div>
-                </div>
-                <div style="color:var(--border);font-size:24px;align-self:center;">|</div>
-                <div class="ft-summary-item">
-                    <div class="ft-summary-label">收益差异 (B-A)</div>
-                    <div class="ft-summary-diff" id="ft-rev-diff">--</div>
-                </div>
-            </div>
             <!-- 对比表格 -->
             <div class="card scheme-inputs">
                 <div class="card-title">方案对比输入</div>
@@ -1489,7 +1472,6 @@ input, button, select, textarea { font-family: inherit; }
                             <th style="width:200px;">字段</th>
                             <th>目标方案 B</th>
                             <th>目标方案 A</th>
-                            <th style="width:140px;">差异 (B-A)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1510,7 +1492,6 @@ input, button, select, textarea { font-family: inherit; }
                                     <span class="input-suffix">%</span>
                                 </div>
                             </td>
-                            <td>--</td>
                         </tr>
                         <tr>
                             <td>活期/定期</td>
@@ -1528,7 +1509,6 @@ input, button, select, textarea { font-family: inherit; }
                                     <option value="6个月定期" selected>6个月定期</option>
                                 </select>
                             </td>
-                            <td>--</td>
                         </tr>
                         <tr>
                             <td>开票周期 (月)</td>
@@ -1538,7 +1518,6 @@ input, button, select, textarea { font-family: inherit; }
                             <td class="input-cell">
                                 <input type="number" id="ft-cycleA" placeholder="如：6" step="1" min="1" max="12">
                             </td>
-                            <td>--</td>
                         </tr>
                         <tr>
                             <td>开票金额 (万)</td>
@@ -1548,33 +1527,57 @@ input, button, select, textarea { font-family: inherit; }
                             <td class="input-cell">
                                 <input type="number" id="ft-amountA" placeholder="如：1000" step="1" min="0">
                             </td>
-                            <td>--</td>
-                        </tr>
-                        <tr>
-                            <td>最低贷款定价</td>
-                            <td><span class="readonly-metric" id="ft-minPriceB">--</span></td>
-                            <td><span class="readonly-metric" id="ft-minPriceA">--</span></td>
-                            <td>--</td>
-                        </tr>
-                        <tr>
-                            <td>保证金净FTP收益率</td>
-                            <td><span class="readonly-metric" id="ft-spreadB">--</span></td>
-                            <td><span class="readonly-metric" id="ft-spreadA">--</span></td>
-                            <td>--</td>
-                        </tr>
-                        <tr>
-                            <td>单票收益 (万)</td>
-                            <td><span class="readonly-metric" id="ft-revenueB">--</span></td>
-                            <td><span class="readonly-metric" id="ft-revenueA">--</span></td>
-                            <td><span id="ft-revenueDiff">--</span></td>
                         </tr>
                     </tbody>
                 </table>
                 <!-- 改参数后需点击计算（与保证金/调价工具一致；统计埋点也在此入口） -->
                 <button type="button" class="btn btn-primary btn-block" onclick="ToolFixedTerm.calculate()">计算</button>
             </div>
-            <!-- 定期页测算结果：摘要条 ft-summary 独立；下方「绝对收益分析 + 自定义指标 + 曲线图」合并为一块白框，与导出截图区域 ft-result-area 配合不变 -->
+            <!-- 定期页测算结果：摘要条 + 计算结果 + 绝对收益分析 + 自定义指标 + 曲线图合并为一块白框 -->
             <div class="card" id="ft-result-card" style="display:none;">
+                <!-- 收益摘要 -->
+                <div class="ft-summary-bar" id="ft-summary">
+                    <div class="ft-summary-item">
+                        <div class="ft-summary-label">方案B单票收益</div>
+                        <div class="ft-summary-value" id="ft-rev-b">--</div>
+                    </div>
+                    <div style="color:var(--border);font-size:24px;align-self:center;">|</div>
+                    <div class="ft-summary-item">
+                        <div class="ft-summary-label">方案A单票收益</div>
+                        <div class="ft-summary-value" id="ft-rev-a">--</div>
+                    </div>
+                    <div style="color:var(--border);font-size:24px;align-self:center;">|</div>
+                    <div class="ft-summary-item">
+                        <div class="ft-summary-label">收益差异 (B-A)</div>
+                        <div class="ft-summary-diff" id="ft-rev-diff">--</div>
+                    </div>
+                </div>
+                <table class="compare-table" style="margin-bottom:16px;">
+                    <thead>
+                        <tr>
+                            <th>字段</th>
+                            <th>目标方案 B</th>
+                            <th>目标方案 A</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>最低贷款定价</td>
+                            <td><span class="readonly-metric" id="ft-minPriceB">--</span></td>
+                            <td><span class="readonly-metric" id="ft-minPriceA">--</span></td>
+                        </tr>
+                        <tr>
+                            <td>保证金净FTP收益率</td>
+                            <td><span class="readonly-metric" id="ft-spreadB">--</span></td>
+                            <td><span class="readonly-metric" id="ft-spreadA">--</span></td>
+                        </tr>
+                        <tr>
+                            <td>单票收益 (万)</td>
+                            <td><span class="readonly-metric" id="ft-revenueB">--</span></td>
+                            <td><span class="readonly-metric" id="ft-revenueA">--</span></td>
+                        </tr>
+                    </tbody>
+                </table>
                 <div class="card-title">绝对收益分析</div>
                 <div class="analysis-grid">
                     <div class="analysis-item">
@@ -4349,14 +4352,10 @@ const ToolFixedTerm = (() => {
         document.getElementById('ft-spreadA').textContent    = formatPercent(spreadA);
         document.getElementById('ft-revenueB').textContent   = formatWan(revenueB);
         document.getElementById('ft-revenueA').textContent   = formatWan(revenueA);
-        const diffEl = document.getElementById('ft-revenueDiff');
-        diffEl.textContent = (diff >= 0 ? '+' : '') + formatWan(diff);
-        diffEl.className = diff >= 0 ? 'diff-positive' : 'diff-negative';
     }
 
     function _updateSummary(revenueB, revenueA, diff) {
         const bar = document.getElementById('ft-summary');
-        bar.style.display = 'flex';
         document.getElementById('ft-rev-b').textContent = formatWan(revenueB);
         document.getElementById('ft-rev-a').textContent = formatWan(revenueA);
         const diffEl = document.getElementById('ft-rev-diff');
@@ -4526,12 +4525,11 @@ const ToolFixedTerm = (() => {
 
     function _clearResults() {
         lastResult = null;
-        document.getElementById('ft-summary').style.display = 'none';
         /* 一次隐藏整块合并结果（分析 + 自定义指标占位 + 图表） */
         document.getElementById('ft-result-card').style.display = 'none';
         document.getElementById('exportFixedTermPdfBtn').style.display = 'none';
         ['ft-minPriceB','ft-minPriceA','ft-spreadB','ft-spreadA',
-         'ft-revenueB','ft-revenueA','ft-revenueDiff'].forEach(id => {
+         'ft-revenueB','ft-revenueA'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.textContent = '--';
         });
