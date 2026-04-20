@@ -564,6 +564,17 @@ input, button, select, textarea { font-family: inherit; }
 .config-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .config-panel { display: none; }
 .config-panel.active { display: block; }
+.config-section-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-mid);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 6px 0 8px;
+    margin: 24px 0 12px;
+    border-bottom: 2px solid var(--border);
+}
+.config-section-header:first-child { margin-top: 0; }
 
 /* 公式说明区块 */
 .formula-block {
@@ -1259,6 +1270,9 @@ input, button, select, textarea { font-family: inherit; }
             <div class="nav-item nav-admin-only" data-page="page-config" onclick="UI.switchPage('page-config', this)">
                 <span class="nav-icon">&#9881;</span>参数配置
             </div>
+            <div class="nav-item nav-admin-only" data-page="page-stats" onclick="UI.switchPage('page-stats', this)">
+                <span class="nav-icon">&#9656;</span>使用统计
+            </div>
         </div>
         <div class="sidebar-footer">
             <div class="sidebar-role" id="sidebarRole">角色：--</div>
@@ -1686,347 +1700,334 @@ input, button, select, textarea { font-family: inherit; }
             <div class="page-header-bar">
                 <div class="page-title">参数配置中心</div>
             </div>
-            <div class="config-tabs">
-                <div class="config-tab active" onclick="ConfigPanel.switchTab('cfg-ftp', this)">FTP 配置</div>
-                <div class="config-tab" onclick="ConfigPanel.switchTab('cfg-price', this)">调价参数</div>
-                <div class="config-tab" onclick="ConfigPanel.switchTab('cfg-chengdui', this)">承兑参数</div>
-                <div class="config-tab" onclick="ConfigPanel.switchTab('cfg-stats', this); StatsPanel.refresh()">使用统计</div>
+            <!-- ── 公共参数 ── -->
+            <div class="config-section-header">公共参数</div>
+            <div class="card">
+                <div class="alert-success" id="common-success">保存成功！公共参数已更新</div>
+                <div class="card-title">公共参数配置</div>
+                <div class="form-help" style="margin-bottom:16px;">以下参数被多个工具共同使用，修改后立即生效于所有工具。</div>
+                <form id="commonForm" onsubmit="ConfigPanel.saveCommon(event)">
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 优化后风险成本</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-common-riskCost" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
+                            <div class="form-help">用于：调价计算器（非520兜底）、定期方案、收益打平</div>
+                            <div class="field-error" id="err-common-riskCost"></div>
+                        </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 业务成本</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-bizCost" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
+                            <div class="form-help">用于：调价计算器（非520兜底）、定期方案、收益打平</div>
+                            <div class="field-error" id="err-bizCost"></div>
+                        </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 信贷FTP</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-common-creditFtp" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
+                            <div class="form-help">用于：定期方案、收益打平</div>
+                            <div class="field-error" id="err-common-creditFtp"></div>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">保存公共参数</button>
+                        <button type="button" class="btn btn-outline" onclick="ConfigPanel.resetCommon()">重置</button>
+                    </div>
+                </form>
             </div>
 
-            <!-- FTP 配置面板 -->
-            <div class="config-panel active" id="cfg-ftp">
-                <div class="card">
-                    <div class="alert-success" id="ftp-success">保存成功！FTP 配置已更新</div>
-                    <div class="card-title">FTP 配置</div>
-                    <form id="ftpForm" onsubmit="ConfigPanel.saveFTP(event)">
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 应用 FTP 值</label>
-                            <div class="form-control-inline">
-                                <div class="input-row">
-                                    <input type="number" class="form-input" id="cfg-ftpValue" step="0.01" min="0" max="10" required>
-                                    <span class="input-suffix">%</span>
-                                </div>
-                                <div class="form-help">建议范围：1.50% - 3.50%</div>
-                                <div class="field-error" id="err-ftpValue"></div>
-                            </div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">生效日期</label>
-                            <div class="form-control-inline">
-                                <input type="date" class="form-input" id="cfg-ftpDate" required>
-                            </div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">备注说明</label>
-                            <div class="form-control-inline">
-                                <input type="text" class="form-input" id="cfg-ftpRemarks" placeholder="选填">
-                            </div>
-                        </div>
-                        <div class="btn-group">
-                            <button type="submit" class="btn btn-primary">保存配置</button>
-                            <button type="button" class="btn btn-outline" onclick="ConfigPanel.resetFTP()">重置</button>
-                            <button type="button" class="btn btn-outline" onclick="ConfigPanel.exportFTP()">导出 JSON</button>
-                        </div>
-                    </form>
+            <!-- ── 专有参数 ── -->
+            <div class="config-section-header">专有参数</div>
 
-                    <!-- FTP 公式说明 -->
-                    <details class="formula-block">
-                        <summary>公式说明（FTP 参数用途）</summary>
-                        <div class="formula-body">
-                            <div class="formula-section">
-                                <div class="formula-section-title">保证金计算器 — 价格 → 保证金比例</div>
-                                <div class="formula-expr"><span class="result">保证金比例</span> <span class="op">=</span> ⌈ (<span class="param">目标价格</span> <span class="op">-</span> <span class="param">FTP</span>) <span class="op">/</span> <span class="param">目标价格</span> ⌉</div>
-                                <div class="formula-note">⌈ ⌉ 表示向上取整到百分位（ceil × 100 / 100）</div>
-                            </div>
-                            <div class="formula-section">
-                                <div class="formula-section-title">保证金计算器 — 保证金比例 → 最低价格</div>
-                                <div class="formula-expr"><span class="result">最低价格</span> <span class="op">=</span> ⌊ (<span class="param">FTP</span> <span class="op">×</span> 目标比例) <span class="op">/</span> (1 <span class="op">-</span> 目标比例) ⌋ <span class="op">+</span> <span class="param">FTP</span></div>
-                                <div class="formula-note">⌊ ⌋ 表示向下取整到百分位（floor × 100 / 100）</div>
-                            </div>
+            <!-- 保证金比例计算器 -->
+            <div class="card">
+                <div class="alert-success" id="ftp-success">保存成功！FTP 配置已更新</div>
+                <div class="card-title">保证金比例计算器 — 应用FTP值</div>
+                <form id="ftpForm" onsubmit="ConfigPanel.saveFTP(event)">
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 应用 FTP 值</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-ftpValue" step="0.01" min="0" max="10" required><span class="input-suffix">%</span></div>
+                            <div class="form-help">建议范围：1.50% - 3.50%</div>
+                            <div class="field-error" id="err-ftpValue"></div>
                         </div>
-                    </details>
-
-                    <div style="margin-top:28px;">
-                        <div class="card-title">历史配置记录</div>
-                        <table class="history-table">
-                            <thead><tr><th>生效日期</th><th>FTP 值</th><th>状态</th><th>备注</th><th>操作人</th><th>操作时间</th><th>操作</th></tr></thead>
-                            <tbody id="ftp-history-body"></tbody>
-                        </table>
                     </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">生效日期</label>
+                        <div class="form-control-inline"><input type="date" class="form-input" id="cfg-ftpDate" required></div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">备注说明</label>
+                        <div class="form-control-inline"><input type="text" class="form-input" id="cfg-ftpRemarks" placeholder="选填"></div>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">保存配置</button>
+                        <button type="button" class="btn btn-outline" onclick="ConfigPanel.resetFTP()">重置</button>
+                        <button type="button" class="btn btn-outline" onclick="ConfigPanel.exportFTP()">导出 JSON</button>
+                    </div>
+                </form>
+                <div style="margin-top:28px;">
+                    <div class="card-title">历史配置记录</div>
+                    <table class="history-table">
+                        <thead><tr><th>生效日期</th><th>FTP 值</th><th>状态</th><th>备注</th><th>操作人</th><th>操作时间</th><th>操作</th></tr></thead>
+                        <tbody id="ftp-history-body"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- 调价参数配置面板 -->
-            <div class="config-panel" id="cfg-price">                <div class="card">
-                    <div class="alert-success" id="pa-cfg-success">保存成功！调价参数已更新</div>
-                    <div class="card-title">调价参数配置</div>
-                    <form id="priceAdjustForm" onsubmit="ConfigPanel.savePriceAdjust(event)">
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 业务成本</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-fxcb" step="0.01" min="0" required><span class="input-suffix">%</span></div>
-                                <div class="form-help">资金成本，建议范围：2.00% - 5.00%</div>
-                                <div class="field-error" id="err-fxcb"></div>
-                            </div>
+            <!-- 调价计算器 -->
+            <div class="card">
+                <div class="alert-success" id="pa-cfg-success">保存成功！调价参数已更新</div>
+                <div class="card-title">调价计算器专有参数</div>
+                <form id="priceAdjustForm" onsubmit="ConfigPanel.savePriceAdjust(event)">
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 计提利润点</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-profitBp" step="1" min="0" required><span class="input-suffix">bp</span></div>
+                            <div class="form-help">1bp = 0.01%，建议范围：50bp - 200bp</div>
+                            <div class="field-error" id="err-profitBp"></div>
                         </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 计提利润点</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-profitBp" step="1" min="0" required><span class="input-suffix">bp</span></div>
-                                <div class="form-help">1bp = 0.01%，建议范围：50bp - 200bp</div>
-                                <div class="field-error" id="err-profitBp"></div>
-                            </div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 520客户兜底价格</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-bottomPrice520" step="0.01" min="0" required><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-bottomPrice520"></div>
-                            </div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 非520客户兜底价格下限</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-bottomPriceNon520Min" step="0.01" min="0" required><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-bottomPriceNon520Min"></div>
-                            </div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">非520客户兜底价格</label>
-                            <div class="form-control-inline">
-                                <div style="padding:10px 14px;background:#fafaf6;border-radius:4px;color:var(--ink-mid);font-size:13px;">max(业务成本 + 风险成本, 非520客户兜底价格下限)</div>
-                                <div class="form-help">由系统自动计算</div>
-                            </div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">生效日期</label>
-                            <div class="form-control-inline"><input type="date" class="form-input" id="cfg-paDate" required></div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">备注说明</label>
-                            <div class="form-control-inline"><input type="text" class="form-input" id="cfg-paRemarks" placeholder="选填"></div>
-                        </div>
-                        <div class="btn-group">
-                            <button type="submit" class="btn btn-primary">保存配置</button>
-                            <button type="button" class="btn btn-outline" onclick="ConfigPanel.resetPriceAdjust()">重置</button>
-                            <button type="button" class="btn btn-outline" onclick="ConfigPanel.exportPriceAdjust()">导出 JSON</button>
-                        </div>
-                    </form>
-
-                    <!-- 调价参数公式说明 -->
-                    <details class="formula-block">
-                        <summary>公式说明（调价参数用途）</summary>
-                        <div class="formula-body">
-                            <div class="formula-section">
-                                <div class="formula-section-title">非520客户兜底价格（自动计算）</div>
-                                <div class="formula-expr"><span class="result">兜底价格</span> <span class="op">=</span> max(<span class="param">业务成本(fxcb)</span> <span class="op">+</span> 风险成本, <span class="param">非520兜底下限</span>)</div>
-                                <div class="formula-note">风险成本来自承兑参数配置中的「优化后风险成本」</div>
-                            </div>
-                            <div class="formula-section">
-                                <div class="formula-section-title">调价计算器 — 目标三个月均余额</div>
-                                <div class="formula-expr"><span class="result">目标余额(3月)</span> <span class="op">=</span> (<span class="param">当前价格</span> <span class="op">-</span> <span class="result">兜底价格</span>) <span class="op">×</span> 均余额 <span class="op">/</span> (<span class="param">目标价格</span> <span class="op">-</span> <span class="result">兜底价格</span>)</div>
-                            </div>
-                            <div class="formula-section">
-                                <div class="formula-section-title">调价计算器 — 按天数折算目标余额</div>
-                                <div class="formula-expr"><span class="result">目标余额(按天)</span> <span class="op">=</span> (90 <span class="op">/</span> 预期天数) <span class="op">×</span> <span class="result">目标余额(3月)</span></div>
-                            </div>
-                        </div>
-                    </details>
-
-                    <div style="margin-top:28px;">
-                        <div class="card-title">历史配置记录</div>
-                        <table class="history-table">
-                            <thead><tr><th>生效日期</th><th>业务成本</th><th>利润点</th><th>520兜底</th><th>非520下限</th><th>状态</th><th>备注</th><th>操作时间</th><th>操作</th></tr></thead>
-                            <tbody id="pa-history-body"></tbody>
-                        </table>
                     </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 520客户兜底价格</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-bottomPrice520" step="0.01" min="0" required><span class="input-suffix">%</span></div>
+                            <div class="field-error" id="err-bottomPrice520"></div>
+                        </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 非520客户兜底价格下限</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-bottomPriceNon520Min" step="0.01" min="0" required><span class="input-suffix">%</span></div>
+                            <div class="field-error" id="err-bottomPriceNon520Min"></div>
+                        </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">非520客户兜底价格</label>
+                        <div class="form-control-inline">
+                            <div style="padding:10px 14px;background:#fafaf6;border-radius:4px;color:var(--ink-mid);font-size:13px;">max(业务成本 + 风险成本, 非520客户兜底价格下限)</div>
+                            <div class="form-help">由系统自动计算，业务成本和风险成本来自公共参数</div>
+                        </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">生效日期</label>
+                        <div class="form-control-inline"><input type="date" class="form-input" id="cfg-paDate" required></div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">备注说明</label>
+                        <div class="form-control-inline"><input type="text" class="form-input" id="cfg-paRemarks" placeholder="选填"></div>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">保存配置</button>
+                        <button type="button" class="btn btn-outline" onclick="ConfigPanel.resetPriceAdjust()">重置</button>
+                        <button type="button" class="btn btn-outline" onclick="ConfigPanel.exportPriceAdjust()">导出 JSON</button>
+                    </div>
+                </form>
+                <div style="margin-top:28px;">
+                    <div class="card-title">历史配置记录</div>
+                    <table class="history-table">
+                        <thead><tr><th>生效日期</th><th>利润点</th><th>520兜底</th><th>非520下限</th><th>状态</th><th>备注</th><th>操作时间</th><th>操作</th></tr></thead>
+                        <tbody id="pa-history-body"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- 承兑参数配置面板 -->
-            <div class="config-panel" id="cfg-chengdui">
-                <div class="card">
-                    <div class="alert-success" id="chengdui-success">保存成功！承兑参数已更新</div>
-                    <div class="card-title">基础 FTP 参数</div>
-                    <form id="chengduiForm" onsubmit="ConfigPanel.saveChengdui(event)">
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 保证金FTP收入</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ftpIncome" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-cd-ftpIncome"></div>
-                            </div>
+            <!-- 承兑工具 -->
+            <div class="card">
+                <div class="alert-success" id="chengdui-success">保存成功！承兑参数已更新</div>
+                <div class="card-title">承兑工具专有参数</div>
+                <form id="chengduiForm" onsubmit="ConfigPanel.saveChengdui(event)">
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 保证金FTP收入</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ftpIncome" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
+                            <div class="field-error" id="err-cd-ftpIncome"></div>
                         </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 保证金FTP活期支出</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ftpDemand" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-cd-ftpDemand"></div>
-                            </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 保证金FTP活期支出</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ftpDemand" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
+                            <div class="field-error" id="err-cd-ftpDemand"></div>
                         </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 保证金FTP3个月定期支出</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ftp3m" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-cd-ftp3m"></div>
-                            </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 保证金FTP3个月定期支出</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ftp3m" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
+                            <div class="field-error" id="err-cd-ftp3m"></div>
                         </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 保证金FTP6个月定期支出</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ftp6m" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-cd-ftp6m"></div>
-                            </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 保证金FTP6个月定期支出</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ftp6m" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
+                            <div class="field-error" id="err-cd-ftp6m"></div>
                         </div>
-                        <div class="card-title" style="margin-top:20px;padding-top:16px;">成本与审批参数</div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 战略业务成本</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-stratCost" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-cd-stratCost"></div>
-                            </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 团队长权限</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-cd-teamLimit" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
+                            <div class="field-error" id="err-cd-teamLimit"></div>
                         </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 信贷FTP</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-creditFtp" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-cd-creditFtp"></div>
-                            </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 方案A目标保证金比例</label>
+                        <div class="form-control-inline">
+                            <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ratioA" step="1" min="0" max="100" required><span class="input-suffix">%</span></div>
+                            <div class="field-error" id="err-cd-ratioA"></div>
                         </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 优化后风险成本</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-riskCost" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-cd-riskCost"></div>
-                            </div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 团队长权限</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-teamLimit" step="0.01" min="0" required oninput="ConfigPanel._renderChengduiDerived()"><span class="input-suffix">%</span></div>
-                                <div class="field-error" id="err-cd-teamLimit"></div>
-                            </div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline"><span class="required">*</span> 方案A目标保证金比例</label>
-                            <div class="form-control-inline">
-                                <div class="input-row"><input type="number" class="form-input" id="cfg-cd-ratioA" step="1" min="0" max="100" required><span class="input-suffix">%</span></div>     
-                                <div class="field-error" id="err-cd-ratioA"></div>
-                            </div>
-                        </div>
-                        <div class="card-title" style="margin-top:20px;padding-top:16px;">只读派生参数</div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">活期净FTP收益率</label>
-                            <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-spreadDemand">--</div></div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">3个月定期净FTP收益率</label>
-                            <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-spread3m">--</div></div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">6个月定期净FTP收益率</label>
-                            <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-spread6m">--</div></div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">团队长权限对应保证金比例</label>
-                            <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-teamRatio">--</div></div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">分管领导权限</label>
-                            <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-leaderLimit">--</div></div>
-                        </div>
-                        <div class="form-row-inline">
-                            <label class="form-label-inline">分管领导权限对应保证金比例</label>
-                            <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-leaderRatio">--</div></div>
-                        </div>
-                        <div class="btn-group">
-                            <button type="submit" class="btn btn-primary">保存配置</button>
-                            <button type="button" class="btn btn-outline" onclick="ConfigPanel.resetChengdui()">重置</button>
-                            <button type="button" class="btn btn-outline" onclick="ConfigPanel.exportChengdui()">导出 JSON</button>
-                        </div>
-                    </form>
+                    </div>
+                    <div class="card-title" style="margin-top:20px;padding-top:16px;">只读派生参数</div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">活期净FTP收益率</label>
+                        <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-spreadDemand">--</div></div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">3个月定期净FTP收益率</label>
+                        <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-spread3m">--</div></div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">6个月定期净FTP收益率</label>
+                        <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-spread6m">--</div></div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">团队长权限对应保证金比例</label>
+                        <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-teamRatio">--</div></div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">分管领导权限</label>
+                        <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-leaderLimit">--</div></div>
+                    </div>
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">分管领导权限对应保证金比例</label>
+                        <div class="form-control-inline"><div class="readonly-metric" id="cd-derived-leaderRatio">--</div></div>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">保存承兑参数</button>
+                        <button type="button" class="btn btn-outline" onclick="ConfigPanel.resetChengdui()">重置</button>
+                        <button type="button" class="btn btn-outline" onclick="ConfigPanel.exportChengdui()">导出 JSON</button>
+                    </div>
+                </form>
+                <div class="toggle-section" style="margin-top:20px;">
+                    <div class="toggle-section-title">承兑-定期方案 显示控制</div>
+                    <div class="toggle-row">
+                        <div class="toggle-label">显示「对应基本法系数」<small>在绝对收益分析中显示基本法系数计算结果</small></div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="cfg-showJbf" onchange="ConfigPanel.saveDisplayToggles()">
+                            <span class="toggle-track"></span>
+                        </label>
+                    </div>
+                </div>
+                <div style="margin-top:28px;">
+                    <div class="card-title">历史配置记录</div>
+                    <table class="history-table">
+                        <thead><tr><th>FTP收入</th><th>活期支出</th><th>3月支出</th><th>6月支出</th><th>团队长权限</th><th>方案A比例</th><th>状态</th><th>操作时间</th><th>操作</th></tr></thead>
+                        <tbody id="chengdui-history-body"></tbody>
+                    </table>
+                </div>
+            </div>
 
-                    <!-- 承兑参数公式说明 -->
-                    <details class="formula-block">
-                        <summary>公式说明（承兑参数用途）</summary>
-                        <div class="formula-body">
-                            <div class="formula-section">
-                                <div class="formula-section-title">派生参数 — 净FTP收益率</div>
-                                <div class="formula-expr"><span class="result">活期净FTP收益率</span>   <span class="op">=</span> <span class="param">保证金FTP收入</span> <span class="op">-</span> <span class="param">活期支出</span>
+            <!-- ── 公式说明 ── -->
+            <div class="config-section-header">公式说明</div>
+            <div class="card">
+                <details class="formula-block">
+                    <summary>保证金比例计算器公式</summary>
+                    <div class="formula-body">
+                        <div class="formula-section">
+                            <div class="formula-section-title">价格 → 保证金比例</div>
+                            <div class="formula-expr"><span class="result">保证金比例</span> <span class="op">=</span> ⌈ (<span class="param">目标价格</span> <span class="op">-</span> <span class="param">FTP</span>) <span class="op">/</span> <span class="param">目标价格</span> ⌉</div>
+                            <div class="formula-note">⌈ ⌉ 表示向上取整到百分位（ceil × 100 / 100）</div>
+                        </div>
+                        <div class="formula-section">
+                            <div class="formula-section-title">保证金比例 → 最低价格</div>
+                            <div class="formula-expr"><span class="result">最低价格</span> <span class="op">=</span> ⌊ (<span class="param">FTP</span> <span class="op">×</span> 目标比例) <span class="op">/</span> (1 <span class="op">-</span> 目标比例) ⌋ <span class="op">+</span> <span class="param">FTP</span></div>
+                            <div class="formula-note">⌊ ⌋ 表示向下取整到百分位（floor × 100 / 100）</div>
+                        </div>
+                    </div>
+                </details>
+                <details class="formula-block">
+                    <summary>调价计算器公式</summary>
+                    <div class="formula-body">
+                        <div class="formula-section">
+                            <div class="formula-section-title">非520客户兜底价格（自动计算）</div>
+                            <div class="formula-expr"><span class="result">兜底价格</span> <span class="op">=</span> max(<span class="param">业务成本</span> <span class="op">+</span> <span class="param">风险成本</span>, <span class="param">非520兜底下限</span>)</div>
+                            <div class="formula-note">业务成本和风险成本来自公共参数</div>
+                        </div>
+                        <div class="formula-section">
+                            <div class="formula-section-title">目标三个月均余额</div>
+                            <div class="formula-expr"><span class="result">目标余额(3月)</span> <span class="op">=</span> (<span class="param">当前价格</span> <span class="op">-</span> <span class="result">兜底价格</span>) <span class="op">×</span> 均余额 <span class="op">/</span> (<span class="param">目标价格</span> <span class="op">-</span> <span class="result">兜底价格</span>)</div>
+                        </div>
+                        <div class="formula-section">
+                            <div class="formula-section-title">按天数折算目标余额</div>
+                            <div class="formula-expr"><span class="result">目标余额(按天)</span> <span class="op">=</span> (90 <span class="op">/</span> 预期天数) <span class="op">×</span> <span class="result">目标余额(3月)</span></div>
+                        </div>
+                    </div>
+                </details>
+                <details class="formula-block">
+                    <summary>承兑工具公式</summary>
+                    <div class="formula-body">
+                        <div class="formula-section">
+                            <div class="formula-section-title">派生参数 — 净FTP收益率</div>
+                            <div class="formula-expr"><span class="result">活期净FTP收益率</span>   <span class="op">=</span> <span class="param">保证金FTP收入</span> <span class="op">-</span> <span class="param">活期支出</span>
 <span class="result">3月定期净FTP收益率</span> <span class="op">=</span> <span class="param">保证金FTP收入</span> <span class="op">-</span> <span class="param">3月定期支出</span>
 <span class="result">6月定期净FTP收益率</span> <span class="op">=</span> <span class="param">保证金FTP收入</span> <span class="op">-</span> <span class="param">6月定期支出</span></div>
-                            </div>
-                            <div class="formula-section">
-                                <div class="formula-section-title">派生参数 — 审批权限对应保证金比例</div>
-                                <div class="formula-expr"><span class="result">团队长保证金比例</span> <span class="op">=</span> (<span class="param">团队长权限</span> <span class="op">-</span> <span class="param">信贷FTP</span>) <span class="op">/</span> <span class="param">团队长权限</span>
+                        </div>
+                        <div class="formula-section">
+                            <div class="formula-section-title">派生参数 — 审批权限对应保证金比例</div>
+                            <div class="formula-expr"><span class="result">团队长保证金比例</span> <span class="op">=</span> (<span class="param">团队长权限</span> <span class="op">-</span> <span class="param">信贷FTP</span>) <span class="op">/</span> <span class="param">团队长权限</span>
 <span class="result">分管领导权限</span>     <span class="op">=</span> <span class="param">风险成本</span> <span class="op">+</span> <span class="param">信贷FTP</span>
 <span class="result">分管领导保证金比例</span> <span class="op">=</span> (<span class="result">分管领导权限</span> <span class="op">-</span> <span class="param">信贷FTP</span>) <span class="op">/</span> <span class="result">分管领导权限</span></div>
-                            </div>
-                            <div class="formula-section">
-                                <div class="formula-section-title">承兑收益打平测算 — 未来三个月均开票金额</div>
-                                <div class="formula-expr">分子 <span class="op">=</span> 均保证金 <span class="op">×</span> 净FTP收益率
-     <span class="op">-</span> 均敞口 <span class="op">×</span> (<span class="param">战略成本</span> <span class="op">-</span> <span class="param">信贷FTP</span>)
+                        </div>
+                        <div class="formula-section">
+                            <div class="formula-section-title">承兑收益打平测算 — 未来三个月均开票金额</div>
+                            <div class="formula-expr">分子 <span class="op">=</span> 均保证金 <span class="op">×</span> 净FTP收益率
+     <span class="op">-</span> 均敞口 <span class="op">×</span> (<span class="param">业务成本</span> <span class="op">-</span> <span class="param">信贷FTP</span>)
      <span class="op">-</span> 均敞口 <span class="op">×</span> <span class="param">风险成本</span>
 
 分母 <span class="op">=</span> 目标比例 <span class="op">×</span> 净FTP收益率
-     <span class="op">-</span> (1 <span class="op">-</span> 目标比例) <span class="op">×</span> (<span class="param">战略成本</span> <span class="op">-</span> <span class="param">信贷FTP</span>)
+     <span class="op">-</span> (1 <span class="op">-</span> 目标比例) <span class="op">×</span> (<span class="param">业务成本</span> <span class="op">-</span> <span class="param">信贷FTP</span>)
      <span class="op">-</span> (1 <span class="op">-</span> 目标比例) <span class="op">×</span> <span class="param">风险成本</span>
-     <span class="op">-</span> (当前比例 <span class="op">-</span> 目标比例) <span class="op">×</span> (当前价格 <span class="op">-</span> <span class="param">战略成本</span> <span class="op">-</span> <span class="param">风险成本</span>) <span class="op">×</span> 贷款比例
+     <span class="op">-</span> (当前比例 <span class="op">-</span> 目标比例) <span class="op">×</span> (当前价格 <span class="op">-</span> <span class="param">业务成本</span> <span class="op">-</span> <span class="param">风险成本</span>) <span class="op">×</span> 贷款比例
 
 <span class="result">未来均开票金额</span> <span class="op">=</span> 分子 <span class="op">/</span> 分母</div>
-                            </div>
-                        </div>
-                    </details>
-
-                    <!-- 承兑-定期方案 显示控制 -->
-                    <div class="toggle-section">
-                        <div class="toggle-section-title">承兑-定期方案 显示控制</div>
-                        <div class="toggle-row">
-                            <div class="toggle-label">
-                                显示「对应基本法系数」
-                                <small>在绝对收益分析中显示基本法系数计算结果</small>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="cfg-showJbf" onchange="ConfigPanel.saveDisplayToggles()">
-                                <span class="toggle-track"></span>
-                            </label>
                         </div>
                     </div>
-
-                    <div style="margin-top:28px;">
-                        <div class="card-title">历史配置记录</div>
-                        <table class="history-table">
-                            <thead><tr><th>FTP收入</th><th>活期支出</th><th>战略成本</th><th>信贷FTP</th><th>风险成本</th><th>团队长权限</th><th>状态</th><th>操作时间</th><th>操作</th></tr></thead>
-                            <tbody id="chengdui-history-body"></tbody>
-                        </table>
-                    </div>
-                </div>
+                </details>
             </div>
 
-            <!-- 使用统计：仅管理员可见的配置子页，数据存 localStorage usageStats -->
-            <div class="config-panel" id="cfg-stats">
-                <div class="card">
-                    <div class="card-title">使用统计</div>
-                    <div style="margin-bottom:16px;">
-                        <div class="card-title" style="font-size:14px;margin-bottom:8px;">各模块测算次数</div>
-                        <table class="history-table">
-                            <thead><tr><th>模块</th><th>测算次数</th></tr></thead>
-                            <tbody id="stats-counts-body"></tbody>
-                        </table>
-                    </div>
-                    <div style="margin-bottom:16px;">
-                        <div class="card-title" style="font-size:14px;margin-bottom:8px;">操作日志（最近 200 条）</div>
-                        <table class="history-table">
-                            <thead><tr><th>模块</th><th>姓名</th><th>团队</th><th>城市/区域</th><th>时间</th></tr></thead>
-                            <tbody id="stats-logs-body"></tbody>
-                        </table>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-outline" onclick="StatsPanel.exportStats()">导出 JSON</button>
-                        <button type="button" class="btn btn-outline" onclick="StatsPanel.resetStats()">重置统计</button>
-                    </div>
+        </div>
+
+        <!-- ====== 内容区 6：使用统计（仅管理员） ====== -->
+        <div class="content-page" id="page-stats">
+            <div class="page-header-bar">
+                <div class="page-title">使用统计</div>
+            </div>
+            <div class="card">
+                <div style="margin-bottom:16px;">
+                    <div class="card-title" style="font-size:14px;margin-bottom:8px;">各模块测算次数</div>
+                    <table class="history-table">
+                        <thead><tr><th>模块</th><th>测算次数</th></tr></thead>
+                        <tbody id="stats-counts-body"></tbody>
+                    </table>
+                </div>
+                <div style="margin-bottom:16px;">
+                    <div class="card-title" style="font-size:14px;margin-bottom:8px;">操作日志（最近 200 条）</div>
+                    <table class="history-table">
+                        <thead><tr><th>模块</th><th>姓名</th><th>团队</th><th>城市/区域</th><th>时间</th></tr></thead>
+                        <tbody id="stats-logs-body"></tbody>
+                    </table>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline" onclick="StatsPanel.exportStats()">导出 JSON</button>
+                    <button type="button" class="btn btn-outline" onclick="StatsPanel.resetStats()">重置统计</button>
                 </div>
             </div>
         </div>
+
     </main>
 </div>
 
@@ -2204,9 +2205,15 @@ const Storage = (() => {
         status: 'active'
     };
 
+    /* —— 公共参数默认值（小数存储） —— */
+    const DEFAULT_COMMON = {
+        bizCost:   0.0354,
+        riskCost:  0.0031,
+        creditFtp: 0.0213
+    };
+
     /* —— 调价参数默认值 —— */
     const DEFAULT_PRICE_ADJUST = {
-        fxcb: 3.54,
         profitBp: 101,
         bottomPrice520: 4.55,
         bottomPriceNon520Min: 4.55,
@@ -2234,21 +2241,24 @@ const Storage = (() => {
     /** 获取调价参数配置（合并默认值） */
     function getPriceAdjustConfig() { return { ...DEFAULT_PRICE_ADJUST, ...get('priceAdjustConfig', DEFAULT_PRICE_ADJUST) }; }
 
+    /** 获取公共参数配置（合并默认值） */
+    function getCommonConfig() { return { ...DEFAULT_COMMON, ...get('commonConfig', DEFAULT_COMMON) }; }
+
+    /** 保存公共参数配置 */
+    function setCommonConfig(data) { set('commonConfig', data); }
+
     /** 获取 FTP 历史 */
     function getFTPHistory() { return get('ftpHistory', []); }
 
     /** 获取调价参数历史 */
     function getPriceAdjustHistory() { return get('priceAdjustHistory', []); }
 
-    /* —— 承兑参数默认值（内部统一小数） —— */
+    /* —— 承兑参数默认值（内部统一小数，不含公共参数） —— */
     const DEFAULT_CHENGDUI = {
         ftpIncome:  0.0212,
         ftpDemand:  0,
         ftp3m:      0.011,
         ftp6m:      0.013,
-        stratCost:  0.031,
-        creditFtp:  0.0213,
-        riskCost:   0.0031,
         teamLimit:  0.045,
         ratioA:     100,
         operator:   '系统默认',
@@ -2301,10 +2311,11 @@ const Storage = (() => {
     /** 清空统计（管理员在配置页操作，建议先导出 JSON） */
     function resetStats() { set('usageStats', DEFAULT_STATS); }
 
-    return { get, set, getFTP, getPriceAdjustConfig, getFTPHistory, getPriceAdjustHistory,
+    return { get, set, getFTP, getPriceAdjustConfig, getCommonConfig, setCommonConfig,
+             getFTPHistory, getPriceAdjustHistory,
              getChengduiConfig, getChengduiHistory, getDisplayToggles, setDisplayToggles,
              getStats, recordCalc, resetStats,
-             DEFAULT_FTP, DEFAULT_PRICE_ADJUST, DEFAULT_CHENGDUI };
+             DEFAULT_FTP, DEFAULT_PRICE_ADJUST, DEFAULT_COMMON, DEFAULT_CHENGDUI };
 })();
 /* ============================================================
    模块 3：UI — 屏幕切换、导航、角色显隐、消息提示
@@ -2347,7 +2358,7 @@ const UI = (() => {
     /** 切换内容页 */
     function switchPage(pageId, navEl) {
         /* 权限拦截：非管理员不能访问配置页 */
-        if (pageId === 'page-config' && !Auth.isAdmin()) return;
+        if ((pageId === 'page-config' || pageId === 'page-stats') && !Auth.isAdmin()) return;
         /* 切换导航激活态 */
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         if (navEl) navEl.classList.add('active');
@@ -2357,6 +2368,7 @@ const UI = (() => {
         if (page) page.classList.add('active');
         /* 移动端：关闭侧边栏 */
         if (typeof MobileNav !== 'undefined') MobileNav.close();
+        if (pageId === 'page-stats' && typeof StatsPanel !== 'undefined') StatsPanel.refresh();
     }
 
     /** 显示消息提示 */
@@ -2476,6 +2488,7 @@ const ToolPriceAdjust = (() => {
      */
     function calculate() {
         const config = Storage.getPriceAdjustConfig();
+        const commonCfg = Storage.getCommonConfig();
         const currentPrice   = parseFloat(document.getElementById('pa-currentPrice').value);
         const riskCost        = parseFloat(document.getElementById('pa-riskCost').value);
         const avgBalance      = parseFloat(document.getElementById('pa-avgBalance').value);
@@ -2499,7 +2512,7 @@ const ToolPriceAdjust = (() => {
             bottomPrice = config.bottomPrice520;
         } else {
             /* 非520客户：max(业务成本 + 风险成本, 非520客户兜底价格下限) */
-            bottomPrice = Math.max(config.fxcb + riskCost, config.bottomPriceNon520Min || 4.55);
+            bottomPrice = Math.max(toPercent(commonCfg.bizCost) + riskCost, config.bottomPriceNon520Min || 4.55);
         }
 
         /* —— 校验：当前价格必须大于兜底价格 —— */
@@ -2695,6 +2708,7 @@ const ToolPriceAdjust = (() => {
 const ConfigPanel = (() => {
     /** 初始化配置面板（加载当前值 + 历史） */
     function init() {
+        _loadCommonForm();
         _loadFTPForm();
         _loadFTPHistory();
         _loadPAForm();
@@ -2710,6 +2724,38 @@ const ConfigPanel = (() => {
         tabEl.classList.add('active');
         document.querySelectorAll('.config-panel').forEach(p => p.classList.remove('active'));
         document.getElementById(panelId).classList.add('active');
+    }
+
+    /* ==================== 公共参数配置 ==================== */
+
+    /** 保存公共参数 */
+    function saveCommon(e) {
+        e.preventDefault();
+        if (!Auth.isAdmin()) { alert('仅管理员可修改配置'); return; }
+        const bizCost   = parseFloat(document.getElementById('cfg-bizCost').value);
+        const riskCost  = parseFloat(document.getElementById('cfg-common-riskCost').value);
+        const creditFtp = parseFloat(document.getElementById('cfg-common-creditFtp').value);
+        ['err-bizCost','err-common-riskCost','err-common-creditFtp'].forEach(id => _fieldError(id, null));
+        let valid = true;
+        if (isNaN(bizCost)   || bizCost   <= 0) { _fieldError('err-bizCost',          '请输入有效的业务成本（大于 0）'); valid = false; }
+        if (isNaN(riskCost)  || riskCost  <  0) { _fieldError('err-common-riskCost',  '请输入有效的风险成本（≥ 0）');   valid = false; }
+        if (isNaN(creditFtp) || creditFtp <= 0) { _fieldError('err-common-creditFtp', '请输入有效的信贷FTP（大于 0）'); valid = false; }
+        if (!valid) return;
+        Storage.setCommonConfig({ bizCost: toRatio(bizCost), riskCost: toRatio(riskCost), creditFtp: toRatio(creditFtp) });
+        UI.showAlert('common-success');
+        _renderChengduiDerived();
+    }
+
+    /** 重置公共参数表单 */
+    function resetCommon() { _loadCommonForm(); }
+
+    /** 加载公共参数表单 */
+    function _loadCommonForm() {
+        const cfg = Storage.getCommonConfig();
+        document.getElementById('cfg-bizCost').value          = toPercent(cfg.bizCost).toFixed(2);
+        document.getElementById('cfg-common-riskCost').value  = toPercent(cfg.riskCost).toFixed(2);
+        document.getElementById('cfg-common-creditFtp').value = toPercent(cfg.creditFtp).toFixed(2);
+        _renderChengduiDerived();
     }
 
     /* ==================== FTP 配置 ==================== */
@@ -2785,16 +2831,14 @@ const ConfigPanel = (() => {
         e.preventDefault();
         if (!Auth.isAdmin()) { alert('仅管理员可修改配置'); return; }
 
-        const fxcb = parseFloat(document.getElementById('cfg-fxcb').value);
         const profitBp = parseFloat(document.getElementById('cfg-profitBp').value);
         const bottomPrice520 = parseFloat(document.getElementById('cfg-bottomPrice520').value);
         const bottomPriceNon520Min = parseFloat(document.getElementById('cfg-bottomPriceNon520Min').value);
         const effectiveDate = document.getElementById('cfg-paDate').value;
         const remarks = document.getElementById('cfg-paRemarks').value;
 
-        ['err-fxcb','err-profitBp','err-bottomPrice520','err-bottomPriceNon520Min'].forEach(id => _fieldError(id, null));
+        ['err-profitBp','err-bottomPrice520','err-bottomPriceNon520Min'].forEach(id => _fieldError(id, null));
         let valid = true;
-        if (isNaN(fxcb) || fxcb <= 0) { _fieldError('err-fxcb', '请输入有效的业务成本（大于 0）'); valid = false; }
         if (isNaN(profitBp) || profitBp <= 0) { _fieldError('err-profitBp', '请输入有效的计提利润点（大于 0）'); valid = false; }
         if (isNaN(bottomPrice520) || bottomPrice520 <= 0) { _fieldError('err-bottomPrice520', '请输入有效的 520 客户兜底价格（大于 0）'); valid = false; }
         if (isNaN(bottomPriceNon520Min) || bottomPriceNon520Min <= 0) { _fieldError('err-bottomPriceNon520Min', '请输入有效的非 520 客户兜底价格下限（大于 0）'); valid = false; }
@@ -2802,7 +2846,7 @@ const ConfigPanel = (() => {
         if (!valid) return;
 
         const config = {
-            fxcb, profitBp, bottomPrice520, bottomPriceNon520Min,
+            profitBp, bottomPrice520, bottomPriceNon520Min,
             effectiveDate, remarks,
             operator: '管理员',
             operateTime: new Date().toISOString(),
@@ -2867,7 +2911,6 @@ const ConfigPanel = (() => {
     /** 加载调价参数表单当前值 */
     function _loadPAForm() {
         const cfg = Storage.getPriceAdjustConfig();
-        document.getElementById('cfg-fxcb').value = cfg.fxcb;
         document.getElementById('cfg-profitBp').value = cfg.profitBp;
         document.getElementById('cfg-bottomPrice520').value = cfg.bottomPrice520;
         document.getElementById('cfg-bottomPriceNon520Min').value = cfg.bottomPriceNon520Min;
@@ -2880,13 +2923,12 @@ const ConfigPanel = (() => {
         const history = Storage.getPriceAdjustHistory();
         const tbody = document.getElementById('pa-history-body');
         if (history.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--ink-light);">暂无历史记录</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink-light);">暂无历史记录</td></tr>';
             return;
         }
         tbody.innerHTML = history.map((item, i) => `
             <tr>
                 <td>${item.effectiveDate || '-'}</td>
-                <td><strong>${Number(item.fxcb).toFixed(2)}%</strong></td>
                 <td><strong>${item.profitBp}bp</strong></td>
                 <td><strong>${Number(item.bottomPrice520).toFixed(2)}%</strong></td>
                 <td><strong>${Number(item.bottomPriceNon520Min).toFixed(2)}%</strong></td>
@@ -2919,7 +2961,6 @@ const ConfigPanel = (() => {
     function _applyPAHistory(index) {
         const history = Storage.getPriceAdjustHistory();
         const cfg = history[index];
-        document.getElementById('cfg-fxcb').value = cfg.fxcb;
         document.getElementById('cfg-profitBp').value = cfg.profitBp;
         document.getElementById('cfg-bottomPrice520').value = cfg.bottomPrice520 || 4.55;
         document.getElementById('cfg-bottomPriceNon520Min').value = cfg.bottomPriceNon520Min || 4.55;
@@ -2945,14 +2986,11 @@ const ConfigPanel = (() => {
         const ftpDemand  = parseFloat(document.getElementById('cfg-cd-ftpDemand').value);
         const ftp3m      = parseFloat(document.getElementById('cfg-cd-ftp3m').value);
         const ftp6m      = parseFloat(document.getElementById('cfg-cd-ftp6m').value);
-        const stratCost  = parseFloat(document.getElementById('cfg-cd-stratCost').value);
-        const creditFtp  = parseFloat(document.getElementById('cfg-cd-creditFtp').value);
-        const riskCost   = parseFloat(document.getElementById('cfg-cd-riskCost').value);
         const teamLimit  = parseFloat(document.getElementById('cfg-cd-teamLimit').value);
         const ratioA     = parseFloat(document.getElementById('cfg-cd-ratioA').value);
 
         const cdErrIds = ['err-cd-ftpIncome','err-cd-ftpDemand','err-cd-ftp3m','err-cd-ftp6m',
-                          'err-cd-stratCost','err-cd-creditFtp','err-cd-riskCost','err-cd-teamLimit','err-cd-ratioA'];
+                          'err-cd-teamLimit','err-cd-ratioA'];
         cdErrIds.forEach(id => _fieldError(id, null));
         let valid = true;
         const cdFields = [
@@ -2960,9 +2998,6 @@ const ConfigPanel = (() => {
             [ftpDemand,  'err-cd-ftpDemand',  '请输入有效的活期支出（≥ 0）'],
             [ftp3m,      'err-cd-ftp3m',      '请输入有效的3个月定期支出（≥ 0）'],
             [ftp6m,      'err-cd-ftp6m',      '请输入有效的6个月定期支出（≥ 0）'],
-            [stratCost,  'err-cd-stratCost',  '请输入有效的战略业务成本（≥ 0）'],
-            [creditFtp,  'err-cd-creditFtp',  '信贷FTP必须大于 0'],
-            [riskCost,   'err-cd-riskCost',   '请输入有效的风险成本（≥ 0）'],
             [teamLimit,  'err-cd-teamLimit',  '团队长权限必须大于 0'],
             [ratioA,     'err-cd-ratioA',     '方案A保证金比例须在 0-100 之间'],
         ];
@@ -2971,9 +3006,9 @@ const ConfigPanel = (() => {
         });
         if (valid) {
             if (ftpIncome <= 0) { _fieldError('err-cd-ftpIncome', '保证金FTP收入必须大于 0'); valid = false; }
-            if (creditFtp <= 0) { _fieldError('err-cd-creditFtp', '信贷FTP必须大于 0'); valid = false; }
             if (teamLimit <= 0) { _fieldError('err-cd-teamLimit', '团队长权限必须大于 0'); valid = false; }
-            if (teamLimit > 0 && creditFtp > 0 && teamLimit < creditFtp) {
+            const commonCfg = Storage.getCommonConfig();
+            if (teamLimit > 0 && toRatio(teamLimit) < commonCfg.creditFtp) {
                 _fieldError('err-cd-teamLimit', '团队长权限不应低于信贷FTP'); valid = false;
             }
             if (ratioA < 0 || ratioA > 100) { _fieldError('err-cd-ratioA', '方案A保证金比例须在 0-100 之间'); valid = false; }
@@ -2986,9 +3021,6 @@ const ConfigPanel = (() => {
             ftpDemand:  toRatio(ftpDemand),
             ftp3m:      toRatio(ftp3m),
             ftp6m:      toRatio(ftp6m),
-            stratCost:  toRatio(stratCost),
-            creditFtp:  toRatio(creditFtp),
-            riskCost:   toRatio(riskCost),
             teamLimit:  toRatio(teamLimit),
             ratioA:     ratioA,
             operator:   '管理员',
@@ -3022,9 +3054,6 @@ const ConfigPanel = (() => {
         document.getElementById('cfg-cd-ftpDemand').value  = toPercent(cfg.ftpDemand).toFixed(2);
         document.getElementById('cfg-cd-ftp3m').value      = toPercent(cfg.ftp3m).toFixed(2);
         document.getElementById('cfg-cd-ftp6m').value      = toPercent(cfg.ftp6m).toFixed(2);
-        document.getElementById('cfg-cd-stratCost').value  = toPercent(cfg.stratCost).toFixed(2);
-        document.getElementById('cfg-cd-creditFtp').value  = toPercent(cfg.creditFtp).toFixed(2);
-        document.getElementById('cfg-cd-riskCost').value   = toPercent(cfg.riskCost).toFixed(2);
         document.getElementById('cfg-cd-teamLimit').value  = toPercent(cfg.teamLimit).toFixed(2);
         document.getElementById('cfg-cd-ratioA').value     = cfg.ratioA !== undefined ? cfg.ratioA : 100;
         _renderChengduiDerived();
@@ -3036,8 +3065,8 @@ const ConfigPanel = (() => {
         const ftpDemand = parseFloat(document.getElementById('cfg-cd-ftpDemand').value);
         const ftp3m     = parseFloat(document.getElementById('cfg-cd-ftp3m').value);
         const ftp6m     = parseFloat(document.getElementById('cfg-cd-ftp6m').value);
-        const creditFtp = parseFloat(document.getElementById('cfg-cd-creditFtp').value);
-        const riskCost  = parseFloat(document.getElementById('cfg-cd-riskCost').value);
+        const creditFtp = parseFloat(document.getElementById('cfg-common-creditFtp').value);
+        const riskCost  = parseFloat(document.getElementById('cfg-common-riskCost').value);
         const teamLimit = parseFloat(document.getElementById('cfg-cd-teamLimit').value);
 
         if ([ftpIncome, ftpDemand, ftp3m, ftp6m, creditFtp, riskCost, teamLimit].some(isNaN)) return;
@@ -3073,10 +3102,10 @@ const ConfigPanel = (() => {
             <tr>
                 <td><strong>${formatPercent(item.ftpIncome)}</strong></td>
                 <td>${formatPercent(item.ftpDemand)}</td>
-                <td>${formatPercent(item.stratCost)}</td>
-                <td>${formatPercent(item.creditFtp)}</td>
-                <td>${formatPercent(item.riskCost)}</td>
+                <td>${formatPercent(item.ftp3m)}</td>
+                <td>${formatPercent(item.ftp6m)}</td>
                 <td>${formatPercent(item.teamLimit)}</td>
+                <td>${item.ratioA !== undefined ? item.ratioA + '%' : '--'}</td>
                 <td><span class="status-badge ${item.status === 'active' ? 'status-active' : 'status-inactive'}">${item.status === 'active' ? '当前生效' : '已失效'}</span></td>
                 <td>${_fmtTime(item.operateTime)}</td>
                 <td>
@@ -3095,9 +3124,6 @@ const ConfigPanel = (() => {
         document.getElementById('cfg-cd-ftpDemand').value  = toPercent(cfg.ftpDemand).toFixed(2);
         document.getElementById('cfg-cd-ftp3m').value      = toPercent(cfg.ftp3m).toFixed(2);
         document.getElementById('cfg-cd-ftp6m').value      = toPercent(cfg.ftp6m).toFixed(2);
-        document.getElementById('cfg-cd-stratCost').value  = toPercent(cfg.stratCost).toFixed(2);
-        document.getElementById('cfg-cd-creditFtp').value  = toPercent(cfg.creditFtp).toFixed(2);
-        document.getElementById('cfg-cd-riskCost').value   = toPercent(cfg.riskCost).toFixed(2);
         document.getElementById('cfg-cd-teamLimit').value  = toPercent(cfg.teamLimit).toFixed(2);
         document.getElementById('cfg-cd-ratioA').value     = cfg.ratioA !== undefined ? cfg.ratioA : 100;
         _renderChengduiDerived();
@@ -3155,6 +3181,7 @@ const ConfigPanel = (() => {
         const ratioAInput = document.getElementById('ft-ratioA');
         if (ratioAInput) {
             const cfg = Storage.getChengduiConfig();
+            const commonCfg = Storage.getCommonConfig();
             ratioAInput.value    = cfg.ratioA !== undefined ? cfg.ratioA : 100;
             ratioAInput.disabled = true;
             const tip = document.getElementById('ft-ratioA-tip');
@@ -3162,11 +3189,11 @@ const ConfigPanel = (() => {
             /* 预填风险成本和团队长权限（仅当输入框为空时） */
             const ftRisk = document.getElementById('ft-riskCostInput');
             const ftTeam = document.getElementById('ft-teamLimitInput');
-            if (ftRisk && ftRisk.value === '') ftRisk.value = toPercent(cfg.riskCost).toFixed(2);
+            if (ftRisk && ftRisk.value === '') ftRisk.value = toPercent(commonCfg.riskCost).toFixed(2);
             if (ftTeam && ftTeam.value === '') ftTeam.value = toPercent(cfg.teamLimit).toFixed(2);
             const beRisk = document.getElementById('be-riskCostInput');
             const beTeam = document.getElementById('be-teamLimitInput');
-            if (beRisk && beRisk.value === '') beRisk.value = toPercent(cfg.riskCost).toFixed(2);
+            if (beRisk && beRisk.value === '') beRisk.value = toPercent(commonCfg.riskCost).toFixed(2);
             if (beTeam && beTeam.value === '') beTeam.value = toPercent(cfg.teamLimit).toFixed(2);
             ToolFixedTerm.recalc();
         }
@@ -3174,6 +3201,7 @@ const ConfigPanel = (() => {
 
     return {
         init, switchTab,
+        saveCommon, resetCommon,
         saveFTP, resetFTP, exportFTP,
         savePriceAdjust, resetPriceAdjust, exportPriceAdjust,
         saveChengdui, resetChengdui, exportChengdui,
@@ -3295,6 +3323,7 @@ const ToolFixedTerm = (() => {
         }
 
         const cfg     = Storage.getChengduiConfig();
+        const commonCfg = Storage.getCommonConfig();
 
         /* 读取页面输入的风险成本和团队长权限（百分数 → 小数），回退到配置默认值 */
         const riskCostInput  = parseFloat(document.getElementById('ft-riskCostInput').value);
@@ -3304,7 +3333,7 @@ const ToolFixedTerm = (() => {
             _clearResults();
             return;
         }
-        const effectiveCfg = Object.assign({}, cfg, {
+        const effectiveCfg = Object.assign({}, cfg, commonCfg, {
             riskCost:  toRatio(riskCostInput),
             teamLimit: toRatio(teamLimitInput)
         });
@@ -3323,19 +3352,19 @@ const ToolFixedTerm = (() => {
         const minPriceA = calcMinPriceByRatio(rA, effectiveCfg.creditFtp);
 
         /* 单票收益 */
-        const revenueB = _calcRevenue(amountB, rB, spreadB, cycleB, effectiveCfg.stratCost, effectiveCfg.creditFtp, effectiveCfg.riskCost);
-        const revenueA = _calcRevenue(amountA, rA, spreadA, cycleA, effectiveCfg.stratCost, effectiveCfg.creditFtp, effectiveCfg.riskCost);
+        const revenueB = _calcRevenue(amountB, rB, spreadB, cycleB, effectiveCfg.bizCost, effectiveCfg.creditFtp, effectiveCfg.riskCost);
+        const revenueA = _calcRevenue(amountA, rA, spreadA, cycleA, effectiveCfg.bizCost, effectiveCfg.creditFtp, effectiveCfg.riskCost);
         const diff = revenueB - revenueA;
 
         /* 绝对收益分析 */
         const unitRevB = rB * spreadB * cycleB / 12
-                       - (1 - rB) * (effectiveCfg.stratCost - effectiveCfg.creditFtp) * cycleB / 12
+                       - (1 - rB) * (effectiveCfg.bizCost - effectiveCfg.creditFtp) * cycleB / 12
                        - (1 - rB) * effectiveCfg.riskCost * cycleB / 12;
         const beAmount = unitRevB !== 0 ? revenueA / unitRevB : NaN;
 
-        const beRatioDenom = cycleB * amountB * (effectiveCfg.stratCost - effectiveCfg.creditFtp + effectiveCfg.riskCost + spreadB);
+        const beRatioDenom = cycleB * amountB * (effectiveCfg.bizCost - effectiveCfg.creditFtp + effectiveCfg.riskCost + spreadB);
         const beRatio = beRatioDenom !== 0
-            ? (12 * revenueA + cycleB * amountB * (effectiveCfg.stratCost - effectiveCfg.creditFtp + effectiveCfg.riskCost)) / beRatioDenom
+            ? (12 * revenueA + cycleB * amountB * (effectiveCfg.bizCost - effectiveCfg.creditFtp + effectiveCfg.riskCost)) / beRatioDenom
             : NaN;
 
         /* 更新 DOM */
@@ -3360,9 +3389,9 @@ const ToolFixedTerm = (() => {
     }
 
     /** 单票收益公式（冻结） */
-    function _calcRevenue(amount, ratio, spread, cycle, stratCost, creditFtp, riskCost) {
+    function _calcRevenue(amount, ratio, spread, cycle, bizCost, creditFtp, riskCost) {
         return amount * ratio * spread * cycle / 12
-             - amount * (1 - ratio) * (stratCost - creditFtp) * cycle / 12
+             - amount * (1 - ratio) * (bizCost - creditFtp) * cycle / 12
              - amount * (1 - ratio) * riskCost * cycle / 12;
     }
 
@@ -3396,10 +3425,10 @@ const ToolFixedTerm = (() => {
         document.getElementById('ft-beRatio').textContent  = isNaN(beRatio)  ? '--' : formatPercent(beRatio);
 
         /* 基本法系数：B19-(1-B19)*(B8-B9+B11)/(B5*0.25)
-           B19=rB, B8=stratCost, B9=creditFtp, B11=riskCost, B5=spreadDemand */
+           B19=rB, B8=bizCost, B9=creditFtp, B11=riskCost, B5=spreadDemand */
         const jbfDenom = derived.spreadDemand * 0.25;
         const jbf = jbfDenom !== 0
-            ? rB - (1 - rB) * (cfg.stratCost - cfg.creditFtp + cfg.riskCost) / jbfDenom
+            ? rB - (1 - rB) * (cfg.bizCost - cfg.creditFtp + cfg.riskCost) / jbfDenom
             : NaN;
         const jbfText = isNaN(jbf) ? '--' : (jbf * 100).toFixed(2) + '%';
         document.getElementById('ft-jbfAmount').textContent = jbfText;
@@ -3449,7 +3478,7 @@ const ToolFixedTerm = (() => {
         for (let i = 1; i <= 99; i++) {
             const h = i / 100;
             const y = amountB * h * spreadB * cycleB / 12
-                    - amountB * (1 - h) * (cfg.stratCost - cfg.creditFtp) * cycleB / 12
+                    - amountB * (1 - h) * (cfg.bizCost - cfg.creditFtp) * cycleB / 12
                     - amountB * (1 - h) * cfg.riskCost * cycleB / 12
                     - revenueA;
             pts.push({ x: h, y });
@@ -3528,7 +3557,7 @@ const ToolFixedTerm = (() => {
             const y = m.fixedY === 0
                 ? 0
                 : (amountB * m.h * spreadB * cycleB / 12
-                 - amountB * (1 - m.h) * (cfg.stratCost - cfg.creditFtp) * cycleB / 12
+                 - amountB * (1 - m.h) * (cfg.bizCost - cfg.creditFtp) * cycleB / 12
                  - amountB * (1 - m.h) * cfg.riskCost * cycleB / 12
                  - revenueA);
             const px = xScale(m.h), py = yScale(y);
@@ -3623,6 +3652,7 @@ const ToolBreakeven = (() => {
         }
 
         const cfg     = Storage.getChengduiConfig();
+        const commonCfg = Storage.getCommonConfig();
 
         /* 读取页面输入的风险成本和团队长权限 */
         const riskCostInput  = parseFloat(document.getElementById('be-riskCostInput').value);
@@ -3631,7 +3661,7 @@ const ToolBreakeven = (() => {
             _showSoftHint('请填写优化后风险成本和团队长权限。');
             _showEmpty(); return;
         }
-        const effectiveCfg = Object.assign({}, cfg, {
+        const effectiveCfg = Object.assign({}, cfg, commonCfg, {
             riskCost:  toRatio(riskCostInput),
             teamLimit: toRatio(teamLimitInput)
         });
@@ -3646,13 +3676,13 @@ const ToolBreakeven = (() => {
 
         /* 核心公式（冻结，与 Excel B25 完全一致） */
         const numerator = (avgMargin * spread)
-                        - (avgExposure * (effectiveCfg.stratCost - effectiveCfg.creditFtp))
+                        - (avgExposure * (effectiveCfg.bizCost - effectiveCfg.creditFtp))
                         - (avgExposure * effectiveCfg.riskCost);
 
         const denominator = (targetRatio * spread)
-                          - ((1 - targetRatio) * (effectiveCfg.stratCost - effectiveCfg.creditFtp))
+                          - ((1 - targetRatio) * (effectiveCfg.bizCost - effectiveCfg.creditFtp))
                           - ((1 - targetRatio) * effectiveCfg.riskCost)
-                          - ((currentRatio - targetRatio) * (currentPrice - effectiveCfg.stratCost - effectiveCfg.riskCost) * loanRatio);
+                          - ((currentRatio - targetRatio) * (currentPrice - effectiveCfg.bizCost - effectiveCfg.riskCost) * loanRatio);
 
         if (Math.abs(denominator) < 1e-12) {
             _showSoftHint('当前参数组合导致分母为 0，请调整比例或贷款占比。');
@@ -3739,16 +3769,16 @@ const ToolBreakeven = (() => {
         /* 图表固定使用活期 spreadDemand（复刻 Excel J 列逻辑） */
         const spreadDemand = derived.spreadDemand;
         const numerator = (avgMargin * spreadDemand)
-                        - (avgExposure * (cfg.stratCost - cfg.creditFtp))
+                        - (avgExposure * (cfg.bizCost - cfg.creditFtp))
                         - (avgExposure * cfg.riskCost);
 
         const pts = [];
         for (let i = 0; i <= 100; i++) {
             const h = i / 100;
             const denom = (h * spreadDemand)
-                        - ((1 - targetRatio) * (cfg.stratCost - cfg.creditFtp))
+                        - ((1 - targetRatio) * (cfg.bizCost - cfg.creditFtp))
                         - ((1 - h) * cfg.riskCost)
-                        - ((currentRatio - h) * (currentPrice - cfg.stratCost - cfg.riskCost) * loanRatio);
+                        - ((currentRatio - h) * (currentPrice - cfg.bizCost - cfg.riskCost) * loanRatio);
             if (Math.abs(denom) < 1e-12) { pts.push({ x: h, y: null }); continue; }
             const jh = numerator / denom;
             pts.push({ x: h, y: (jh >= 0 && jh <= 2000) ? jh : null });
