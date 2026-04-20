@@ -564,6 +564,9 @@ input, button, select, textarea { font-family: inherit; }
 .config-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .config-panel { display: none; }
 .config-panel.active { display: block; }
+/* 各工具主结果下方：自定义公式追加展示 */
+.custom-formula-results { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.custom-formula-results:empty { display: none; }
 .config-section-header {
     font-size: 13px;
     font-weight: 600;
@@ -1178,7 +1181,7 @@ input, button, select, textarea { font-family: inherit; }
     .margin-result-value { font-size: 48px; }
 
     /* 导出按钮 */
-    #exportPdfBtn, #exportFixedTermPdfBtn, #exportBreakevenPdfBtn {
+    #exportPdfBtn, #exportFixedTermPdfBtn, #exportBreakevenPdfBtn, #exportMarginPdfBtn {
         width: 100%;
         margin-top: 8px;
     }
@@ -1287,8 +1290,10 @@ input, button, select, textarea { font-family: inherit; }
         <div class="content-page active" id="page-margin">
             <div class="page-header-bar">
                 <div class="page-title">承兑保证金比例计算器</div>
+                <!-- 与调价/定期/打平页一致：方法名 printPDF，实际为 PNG 截图导出 -->
+                <button class="btn btn-outline" id="exportMarginPdfBtn" style="display:none;" onclick="ExportMargin.printPDF()">导出 PNG</button>
             </div>
-            <div class="two-col">
+            <div class="two-col" id="margin-two-col">
                 <!-- 左侧输入 -->
                 <div class="card">
                     <div class="card-title">计算参数</div>
@@ -1334,6 +1339,8 @@ input, button, select, textarea { font-family: inherit; }
                         <div class="margin-result-label" id="margin-result-label">计算结果</div>
                         <div class="margin-result-value" id="margin-result-value">--</div>
                     </div>
+                    <!-- 自定义公式结果（计算成功后由 CustomFormulas 填充） -->
+                    <div id="margin-custom-results" class="custom-formula-results"></div>
                 </div>
             </div>
         </div>
@@ -1415,6 +1422,8 @@ input, button, select, textarea { font-family: inherit; }
                             <div class="detail-row"><span class="detail-row-label">目标价格</span><span class="detail-row-value" id="pa-detailTarget">--</span></div>
                             <div class="detail-row"><span class="detail-row-label">兜底价格</span><span class="detail-row-value" id="pa-detailBottom">--</span></div>
                         </div>
+                    <!-- 自定义指标置于图表上方（仅在一次有效计算完成后由 CustomFormulas 渲染） -->
+                    <div id="pa-custom-results" class="custom-formula-results"></div>
                         <div class="chart-wrap"><canvas id="pa-chart"></canvas></div>
                     </div>
                 </div>
@@ -1582,6 +1591,8 @@ input, button, select, textarea { font-family: inherit; }
                 <div class="approval-hint approval-hint-leader" id="ft-hint-leader"></div>
                 <div class="approval-hint approval-hint-exceed" id="ft-hint-exceed"></div>
             </div>
+            <!-- 自定义公式结果：仅在用户点击「计算」且 recalc 成功写入 lastResult 后渲染；置于图表上方 -->
+            <div id="ft-custom-results" class="custom-formula-results"></div>
             <!-- 图表 -->
             <div class="card" id="ft-chart-card" style="display:none;">
                 <div class="card-title">保证金比例-收益曲线（相对方案A）</div>
@@ -1690,6 +1701,8 @@ input, button, select, textarea { font-family: inherit; }
                             <div class="detail-row"><span class="detail-row-label">历史均保证金</span><span class="detail-row-value" id="be-d-margin">--</span></div>
                             <div class="detail-row"><span class="detail-row-label">分管领导权限</span><span class="detail-row-value" id="be-leaderLimit">--</span></div>
                         </div>
+                    <!-- 自定义指标在图表上方展示 -->
+                    <div id="be-custom-results" class="custom-formula-results"></div>
                         <div class="chart-wrap"><canvas id="be-chart"></canvas></div>
                     </div>
                 </div>
@@ -1700,6 +1713,11 @@ input, button, select, textarea { font-family: inherit; }
             <div class="page-header-bar">
                 <div class="page-title">参数配置中心</div>
             </div>
+            <div class="config-tabs">
+                <div class="config-tab active" onclick="ConfigPanel.switchTab('cfg-main-params', this)">参数配置</div>
+                <div class="config-tab" onclick="ConfigPanel.switchTab('cfg-formulas', this)">自定义公式</div>
+            </div>
+            <div id="cfg-main-params" class="config-panel active">
             <!-- ── 公共参数 ── -->
             <div class="config-section-header">公共参数</div>
             <div class="card">
@@ -1997,6 +2015,108 @@ input, button, select, textarea { font-family: inherit; }
                         </div>
                     </div>
                 </details>
+            </div>
+            </div><!-- /cfg-main-params -->
+
+            <div class="config-panel" id="cfg-formulas">
+                <div class="card">
+                    <div class="alert-success" id="formula-success" style="display:none;">公式已保存</div>
+                    <div class="card-title">新建自定义公式</div>
+
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 公式名称</label>
+                        <div class="form-control-inline">
+                            <input type="text" class="form-input" id="cfg-formula-name" placeholder="例：净利差">
+                        </div>
+                    </div>
+
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 适用工具</label>
+                        <div class="form-control-inline">
+                            <select class="form-input" id="cfg-formula-scope" onchange="CustomFormulas.onScopeChange()">
+                                <option value="global">全部工具（仅配置参数）</option>
+                                <option value="priceAdjust">一户一策调价计算器</option>
+                                <option value="margin">承兑保证金比例计算器</option>
+                                <option value="fixedTerm">承兑-定期方案测算</option>
+                                <option value="breakeven">承兑-收益打平测算</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row-inline" style="align-items:flex-start;">
+                        <label class="form-label-inline">参数</label>
+                        <div class="form-control-inline" id="cfg-formula-param-btns" style="flex-wrap:wrap;"></div>
+                    </div>
+
+                    <div class="form-row-inline" style="align-items:flex-start;">
+                        <label class="form-label-inline">运算</label>
+                        <div class="form-control-inline" id="cfg-formula-op-btns" style="flex-wrap:wrap;">
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertOp('+')">+</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertOp('-')">-</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertOp('*')">×</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertOp('/')">÷</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertOp('^')">x^y</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertParen('(')">(</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertParen(')')">)</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertFunc('sqrt')">√x</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertSquare()">x²</button>
+                        </div>
+                    </div>
+
+                    <div class="form-row-inline" style="align-items:flex-start;">
+                        <label class="form-label-inline">常量</label>
+                        <!-- 快捷常量 + 自定义数值：插入逻辑走 insertNumber / insertCustomNumber，与 token 结构一致 -->
+                        <div class="form-control-inline" id="cfg-formula-number-btns" style="flex-wrap:wrap;align-items:center;gap:4px;">
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertNumber('1')">1</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertNumber('2')">2</button>
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertNumber('0.5')">0.5</button>
+                            <input
+                                type="number"
+                                id="cfg-formula-custom-num"
+                                placeholder="自定义数值"
+                                style="width:110px;padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();CustomFormulas.insertCustomNumber();}"
+                            >
+                            <button type="button" class="btn btn-outline" onclick="CustomFormulas.insertCustomNumber()">插入</button>
+                        </div>
+                    </div>
+
+                    <div class="form-row-inline" style="align-items:flex-start;">
+                        <label class="form-label-inline"><span class="required">*</span> 公式预览</label>
+                        <div class="form-control-inline">
+                            <div class="readonly-metric" id="cfg-formula-preview">请点击下方按钮构造公式</div>
+                            <div class="form-help" style="font-size:12px;color:#888;margin-top:4px;">
+                                仅支持按钮式构造；利率类参数统一按 % 计算，金额类按万元，bp 参数保持 bp
+                            </div>
+                            <div style="color:#e53e3e;font-size:12px;margin-top:4px;" id="err-formula-expr"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-row-inline">
+                        <label class="form-label-inline"><span class="required">*</span> 结果标签</label>
+                        <div class="form-control-inline">
+                            <input type="text" class="form-input" id="cfg-formula-label" placeholder="例：净利差">
+                        </div>
+                    </div>
+
+                    <div class="form-row-inline">
+                        <label class="form-label-inline">结果单位</label>
+                        <div class="form-control-inline">
+                            <input type="text" class="form-input" id="cfg-formula-unit" placeholder="例：% / bp / 万元" style="max-width:160px;">
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary" onclick="CustomFormulas.save()">保存公式</button>
+                        <button type="button" class="btn btn-outline" onclick="CustomFormulas.backspace()">退格</button>
+                        <button type="button" class="btn btn-outline" onclick="CustomFormulas.resetForm()">清空</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">已保存公式</div>
+                    <div id="cfg-formula-list"><div style="color:#aaa;text-align:center;padding:20px;">暂无自定义公式</div></div>
+                </div>
             </div>
 
         </div>
@@ -2311,10 +2431,17 @@ const Storage = (() => {
     /** 清空统计（管理员在配置页操作，建议先导出 JSON） */
     function resetStats() { set('usageStats', DEFAULT_STATS); }
 
+    /** 读取管理员配置的自定义公式列表（token 结构，见 CustomFormulas 模块） */
+    function getCustomFormulas() { return get('customFormulas', []); }
+
+    /** 持久化自定义公式列表 */
+    function setCustomFormulas(data) { set('customFormulas', data); }
+
     return { get, set, getFTP, getPriceAdjustConfig, getCommonConfig, setCommonConfig,
              getFTPHistory, getPriceAdjustHistory,
              getChengduiConfig, getChengduiHistory, getDisplayToggles, setDisplayToggles,
              getStats, recordCalc, resetStats,
+             getCustomFormulas, setCustomFormulas,
              DEFAULT_FTP, DEFAULT_PRICE_ADJUST, DEFAULT_COMMON, DEFAULT_CHENGDUI };
 })();
 /* ============================================================
@@ -2450,19 +2577,28 @@ const ToolMargin = (() => {
     }
 
     /* —— 内部方法 —— */
+    /** 最近一次有效计算结果（导出 PNG 前校验；切换 Tab 时必须在 _hideResult 中清空，避免导出旧数据） */
+    let lastResult = null;
+
     function _showResult(label, value) {
+        lastResult = { label, value };
         document.getElementById('margin-empty').style.display = 'none';
         const rd = document.getElementById('margin-result');
         rd.classList.add('show');
         document.getElementById('margin-result-label').textContent = label;
         document.getElementById('margin-result-value').textContent = value;
+        document.getElementById('exportMarginPdfBtn').style.display = 'inline-block';
+        if (typeof CustomFormulas !== 'undefined') CustomFormulas.renderForTool('margin', 'margin-custom-results');
     }
     function _hideResult() {
+        lastResult = null;
         document.getElementById('margin-empty').style.display = 'block';
         document.getElementById('margin-result').classList.remove('show');
+        document.getElementById('exportMarginPdfBtn').style.display = 'none';
+        document.getElementById('margin-custom-results').innerHTML = '';
     }
 
-    return { loadFTP, switchMode, calcModeA, calcModeB };
+    return { loadFTP, switchMode, calcModeA, calcModeB, getLastResult: () => lastResult };
 })();
 
 /* ============================================================
@@ -2581,6 +2717,7 @@ const ToolPriceAdjust = (() => {
         };
         document.getElementById('exportPdfBtn').style.display = 'inline-block';
         Storage.recordCalc('priceAdjust', Auth.getSession());
+        if (typeof CustomFormulas !== 'undefined') CustomFormulas.renderForTool('priceAdjust', 'pa-custom-results');
     }
 
     /** 调价页顶部黄条提示：无文案时收起，避免留出空白条 */
@@ -2716,6 +2853,7 @@ const ConfigPanel = (() => {
         _loadChengduiForm();
         _loadChengduiHistory();
         _loadDisplayToggles();
+        if (typeof CustomFormulas !== 'undefined') CustomFormulas.init();
     }
 
     /** 切换配置子 Tab */
@@ -2724,6 +2862,7 @@ const ConfigPanel = (() => {
         tabEl.classList.add('active');
         document.querySelectorAll('.config-panel').forEach(p => p.classList.remove('active'));
         document.getElementById(panelId).classList.add('active');
+        if (panelId === 'cfg-formulas' && typeof CustomFormulas !== 'undefined') CustomFormulas.init();
     }
 
     /* ==================== 公共参数配置 ==================== */
@@ -3262,6 +3401,807 @@ const StatsPanel = (() => {
 })();
 
 /* ============================================================
+   模块 6c：CustomFormulas — 按钮式自定义公式（无 eval）
+
+   设计要点（与方案文档一致）：
+   - 草稿与持久化均以 token 数组为准，展示层单独生成中文预览
+   - 构造期：insert* 系列用 _validateInsertion 减少非法序列
+   - 保存期：括号匹配、作用域内参数、递归下降解析、试算（_mockVars）
+   - 运行期：_buildVars 从 Storage + 当前页 DOM 取值；缺参或异常只影响单行展示
+   ============================================================ */
+const CustomFormulas = (() => {
+    /** 当前正在编辑的 token 序列（权威结构，保存时写入 Storage） */
+    let draftTokens = [];
+    /** 标记「x²」插入的 ^ 与 2，退格时成组删除 */
+    let lastInsertWasSquare = false;
+
+    /**
+     * 参数注册表：label 用于预览；scopes 表示在哪些「适用工具」下可选；
+     * resolve 返回参与运算的数值（与页面展示口径一致：多为 %、万元、bp）
+     * source：'config' = 后台配置（Storage）；'input' = 前台输入（客户经理可改），用于公式编辑区按钮分组展示
+     */
+    const PARAM_DEFS = {
+        ftpValue: {
+            label: 'FTP利率', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return Storage.getFTP().ftpValue; }
+        },
+        bizCost: {
+            label: '业务成本', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return toPercent(Storage.getCommonConfig().bizCost); }
+        },
+        riskCostCfg: {
+            label: '风险成本(配置)', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return toPercent(Storage.getCommonConfig().riskCost); }
+        },
+        creditFtp: {
+            label: '信贷FTP', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return toPercent(Storage.getCommonConfig().creditFtp); }
+        },
+        profitBp: {
+            label: '计提利润点', unit: 'bp', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return Storage.getPriceAdjustConfig().profitBp; }
+        },
+        bottomPrice520: {
+            label: '520客户兜底价格', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return Storage.getPriceAdjustConfig().bottomPrice520; }
+        },
+        bottomPriceNon520Min: {
+            label: '非520客户兜底下限', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return Storage.getPriceAdjustConfig().bottomPriceNon520Min; }
+        },
+        ftpIncome: {
+            label: '保证金FTP收入', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return toPercent(Storage.getChengduiConfig().ftpIncome); }
+        },
+        ftpDemand: {
+            label: '保证金FTP活期支出', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return toPercent(Storage.getChengduiConfig().ftpDemand); }
+        },
+        ftp3m: {
+            label: '保证金FTP3个月支出', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return toPercent(Storage.getChengduiConfig().ftp3m); }
+        },
+        ftp6m: {
+            label: '保证金FTP6个月支出', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return toPercent(Storage.getChengduiConfig().ftp6m); }
+        },
+        teamLimit: {
+            label: '团队长权限', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return toPercent(Storage.getChengduiConfig().teamLimit); }
+        },
+        ratioA: {
+            label: '方案A目标保证金比例', unit: '%', scopes: ['global', 'priceAdjust', 'margin', 'fixedTerm', 'breakeven'],
+            source: 'config',
+            resolve() { return Storage.getChengduiConfig().ratioA; }
+        },
+        currentPrice: {
+            label: '当前价格', unit: '%', scopes: ['priceAdjust'],
+            source: 'input',
+            resolve() { return _readInputNumber('pa-currentPrice'); }
+        },
+        riskCostInput: {
+            label: '风险成本(输入)', unit: '%', scopes: ['priceAdjust'],
+            source: 'input',
+            resolve() { return _readInputNumber('pa-riskCost'); }
+        },
+        avgBalance: {
+            label: '3月平均余额', unit: '万元', scopes: ['priceAdjust'],
+            source: 'input',
+            resolve() { return _readInputNumber('pa-avgBalance'); }
+        },
+        targetPrice: {
+            label: '目标价格', unit: '%', scopes: ['priceAdjust'],
+            source: 'input',
+            resolve() { return _readInputNumber('pa-targetPrice'); }
+        },
+        availableLimit: {
+            label: '可用额度', unit: '万元', scopes: ['priceAdjust'],
+            source: 'input',
+            resolve() { return _readInputNumber('pa-availableLimit'); }
+        },
+        expectedDays: {
+            label: '预期用款天数', unit: '天', scopes: ['priceAdjust'],
+            source: 'input',
+            resolve() { return _readInputNumber('pa-expectedDays'); }
+        },
+        marginFtp: {
+            label: 'FTP(保证金)', unit: '%', scopes: ['margin'],
+            source: 'input',
+            resolve() {
+                const modeA = document.getElementById('margin-modeA');
+                const useA = !modeA || modeA.style.display !== 'none';
+                return _readInputNumber(useA ? 'margin-ftpA' : 'margin-ftpB');
+            }
+        },
+        marginTargetPrice: {
+            label: '目标价格(保证金)', unit: '%', scopes: ['margin'],
+            source: 'input',
+            resolve() { return _readInputNumber('margin-targetPrice'); }
+        },
+        marginTargetRatio: {
+            label: '目标比例(保证金)', unit: '%', scopes: ['margin'],
+            source: 'input',
+            resolve() { return _readInputNumber('margin-targetRatio'); }
+        },
+        ftRatioB: {
+            label: '方案B保证金比例', unit: '%', scopes: ['fixedTerm'],
+            source: 'input',
+            resolve() { return _readInputNumber('ft-ratioB'); }
+        },
+        ftCycleB: {
+            label: '方案B开票周期', unit: '月', scopes: ['fixedTerm'],
+            source: 'input',
+            resolve() { return _readInputNumber('ft-cycleB'); }
+        },
+        ftAmountB: {
+            label: '方案B开票金额', unit: '万元', scopes: ['fixedTerm'],
+            source: 'input',
+            resolve() { return _readInputNumber('ft-amountB'); }
+        },
+        ftRatioAInput: {
+            label: '方案A保证金比例', unit: '%', scopes: ['fixedTerm'],
+            source: 'input',
+            resolve() { return _readInputNumber('ft-ratioA'); }
+        },
+        ftCycleA: {
+            label: '方案A开票周期', unit: '月', scopes: ['fixedTerm'],
+            source: 'input',
+            resolve() { return _readInputNumber('ft-cycleA'); }
+        },
+        ftAmountA: {
+            label: '方案A开票金额', unit: '万元', scopes: ['fixedTerm'],
+            source: 'input',
+            resolve() { return _readInputNumber('ft-amountA'); }
+        },
+        ftRiskCostInput: {
+            label: '风险成本(定期页输入)', unit: '%', scopes: ['fixedTerm'],
+            source: 'input',
+            resolve() { return _readInputNumber('ft-riskCostInput'); }
+        },
+        ftTeamLimitInput: {
+            label: '团队长权限(定期页输入)', unit: '%', scopes: ['fixedTerm'],
+            source: 'input',
+            resolve() { return _readInputNumber('ft-teamLimitInput'); }
+        },
+        beCurrentRatio: {
+            label: '当前保证金比例', unit: '%', scopes: ['breakeven'],
+            source: 'input',
+            resolve() { return _readInputNumber('be-currentRatio'); }
+        },
+        beAvgExposure: {
+            label: '历史均敞口', unit: '万元', scopes: ['breakeven'],
+            source: 'input',
+            resolve() { return _readInputNumber('be-avgExposure'); }
+        },
+        beAvgMargin: {
+            label: '历史均保证金', unit: '万元', scopes: ['breakeven'],
+            source: 'input',
+            resolve() { return _readInputNumber('be-avgMargin'); }
+        },
+        beLoanRatio: {
+            label: '贷款日均额占比', unit: '%', scopes: ['breakeven'],
+            source: 'input',
+            resolve() { return _readInputNumber('be-loanRatio'); }
+        },
+        beTargetRatio: {
+            label: '目标保证金比例', unit: '%', scopes: ['breakeven'],
+            source: 'input',
+            resolve() { return _readInputNumber('be-targetRatio'); }
+        },
+        beRiskCostInput: {
+            label: '风险成本(打平页输入)', unit: '%', scopes: ['breakeven'],
+            source: 'input',
+            resolve() { return _readInputNumber('be-riskCostInput'); }
+        },
+        beTeamLimitInput: {
+            label: '团队长权限(打平页输入)', unit: '%', scopes: ['breakeven'],
+            source: 'input',
+            resolve() { return _readInputNumber('be-teamLimitInput'); }
+        }
+    };
+
+    function _readInputNumber(id) {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const v = parseFloat(el.value);
+        return Number.isFinite(v) ? v : null;
+    }
+
+    /** 某工具作用域下允许插入的参数 key 列表 */
+    function _allowedParamKeys(scope) {
+        return Object.keys(PARAM_DEFS).filter(k => PARAM_DEFS[k].scopes.includes(scope));
+    }
+
+    function _formulaErr(el, msg) {
+        if (!el) return;
+        el.textContent = msg || '';
+    }
+
+    function _escapeHtml(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\"/g, '&quot;');
+    }
+
+    /** 取上一个 token 的「语法类别」，用于构造期合法性判断 */
+    function _lastKind() {
+        if (!draftTokens.length) return 'START';
+        const t = draftTokens[draftTokens.length - 1];
+        if (t.type === 'param' || t.type === 'number') return 'VALUE';
+        if (t.type === 'paren' && t.value === ')') return 'VALUE';
+        if (t.type === 'op') return 'OP';
+        if (t.type === 'paren' && t.value === '(') return 'OPEN';
+        if (t.type === 'func') return 'FUNC';
+        return 'OTHER';
+    }
+
+    /**
+     * 构造期校验：拦截明显非法拼接（减少保存失败）
+     * @returns {string|null} 错误文案，null 表示可插入
+     */
+    function _validateInsertion(next) {
+        const k = _lastKind();
+        /* 乘、除、幂不可出现在表达式开头、左括号后，也不可紧跟在二元运算符后 */
+        if (next.type === 'op' && (next.value === '*' || next.value === '/' || next.value === '^')) {
+            if (k === 'START' || k === 'OPEN' || k === 'OP') return '运算符位置不正确';
+        }
+        if (next.type === 'paren' && next.value === ')') {
+            if (k === 'START' || k === 'OPEN') return '运算符位置不正确';
+        }
+        if (next.type === 'paren' && next.value === '(') {
+            if (k === 'VALUE') return '请在括号前插入运算符';
+        }
+        if (next.type === 'param' || next.type === 'number') {
+            if (k === 'VALUE') return '请先插入运算符';
+        }
+        if (next.type === 'func') {
+            if (k === 'VALUE') return '请先插入运算符';
+        }
+        if (next.type === 'op' && (next.value === '+' || next.value === '-' || next.value === '*' || next.value === '/' || next.value === '^')) {
+            if (k === 'START' || k === 'OPEN') {
+                if (next.value !== '-') return '运算符位置不正确';
+            }
+            if (k === 'OP') {
+                if (next.value !== '-') return '运算符位置不正确';
+            }
+        }
+        return null;
+    }
+
+    function _previewToken(t) {
+        if (t.type === 'param') return (PARAM_DEFS[t.value] && PARAM_DEFS[t.value].label) || t.value;
+        if (t.type === 'number') return t.value;
+        if (t.type === 'op') {
+            if (t.value === '*') return '×';
+            if (t.value === '/') return '÷';
+            return t.value;
+        }
+        if (t.type === 'paren') return t.value;
+        if (t.type === 'func') return t.value;
+        return '';
+    }
+
+    function _renderPreview() {
+        const el = document.getElementById('cfg-formula-preview');
+        if (!el) return;
+        if (!draftTokens.length) {
+            el.textContent = '请点击下方按钮构造公式';
+            return;
+        }
+        el.textContent = draftTokens.map(_previewToken).join(' ');
+    }
+
+    /** 按 PARAM_DEFS.source 分组渲染「插入参数」按钮：先后台配置，再前台可改项 */
+    function _renderParamButtons() {
+        const wrap = document.getElementById('cfg-formula-param-btns');
+        if (!wrap) return;
+        const sel = document.getElementById('cfg-formula-scope');
+        const scope = sel ? sel.value : 'global';
+        const keys = _allowedParamKeys(scope);
+        const configKeys = keys.filter(k => PARAM_DEFS[k].source === 'config');
+        const inputKeys = keys.filter(k => PARAM_DEFS[k].source === 'input');
+
+        function renderBtn(key) {
+            const d = PARAM_DEFS[key];
+            const unit = d.unit ? ' · ' + _escapeHtml(d.unit) : '';
+            return '<button type="button" class="btn btn-outline" style="margin:4px 6px 4px 0;" onclick="CustomFormulas.insertParam(\'' + key + '\')">' +
+                _escapeHtml(d.label) + '<small style="opacity:.75">' + unit + '</small></button>';
+        }
+
+        let html = '';
+        if (configKeys.length) {
+            html += '<div style="width:100%;font-size:11px;color:#888;margin:4px 0 2px;letter-spacing:.5px;">后台配置参数</div>';
+            html += configKeys.map(renderBtn).join('');
+        }
+        if (inputKeys.length) {
+            html += '<div style="width:100%;font-size:11px;color:#888;margin:8px 0 2px;letter-spacing:.5px;">前台参数（客户经理可更改）</div>';
+            html += inputKeys.map(renderBtn).join('');
+        }
+        wrap.innerHTML = html;
+    }
+
+    function onScopeChange() {
+        const scope = document.getElementById('cfg-formula-scope').value;
+        const allowed = new Set(_allowedParamKeys(scope));
+        const bad = draftTokens.some(t => t.type === 'param' && !allowed.has(t.value));
+        if (bad) {
+            draftTokens = [];
+            lastInsertWasSquare = false;
+            alert('已切换适用工具，原公式中含不可用参数，草稿已清空。');
+        }
+        _renderParamButtons();
+        _renderPreview();
+        _formulaErr(document.getElementById('err-formula-expr'), '');
+    }
+
+    function insertParam(key) {
+        const scope = document.getElementById('cfg-formula-scope').value;
+        if (!_allowedParamKeys(scope).includes(key)) return;
+        const err = _validateInsertion({ type: 'param', value: key });
+        if (err) { alert(err); return; }
+        draftTokens.push({ type: 'param', value: key });
+        lastInsertWasSquare = false;
+        _renderPreview();
+        _formulaErr(document.getElementById('err-formula-expr'), '');
+    }
+
+    function insertNumber(s) {
+        const last = draftTokens[draftTokens.length - 1];
+        /* 连续按 1、2 时合并为多位数字常量，避免被误判为两个相邻数字 token */
+        if (last && last.type === 'number' && (s === '1' || s === '2')) {
+            last.value = String(last.value) + s;
+            lastInsertWasSquare = false;
+            _renderPreview();
+            _formulaErr(document.getElementById('err-formula-expr'), '');
+            return;
+        }
+        const err = _validateInsertion({ type: 'number', value: s });
+        if (err) { alert(err); return; }
+        draftTokens.push({ type: 'number', value: String(s) });
+        lastInsertWasSquare = false;
+        _renderPreview();
+        _formulaErr(document.getElementById('err-formula-expr'), '');
+    }
+
+    function insertOp(op) {
+        const err = _validateInsertion({ type: 'op', value: op });
+        if (err) { alert(err); return; }
+        draftTokens.push({ type: 'op', value: op });
+        lastInsertWasSquare = false;
+        _renderPreview();
+        _formulaErr(document.getElementById('err-formula-expr'), '');
+    }
+
+    function insertParen(ch) {
+        if (ch === ')') {
+            const lastOpenIdx = (() => {
+                let depth = 0;
+                for (let i = draftTokens.length - 1; i >= 0; i--) {
+                    const t = draftTokens[i];
+                    if (t.type === 'paren' && t.value === ')') depth++;
+                    else if (t.type === 'paren' && t.value === '(') {
+                        if (depth === 0) return i;
+                        depth--;
+                    }
+                }
+                return -1;
+            })();
+            if (lastOpenIdx >= 0) {
+                const inner = draftTokens.slice(lastOpenIdx + 1);
+                if (!inner.length) {
+                    alert('括号内不能为空');
+                    return;
+                }
+            }
+        }
+        const err = _validateInsertion({ type: 'paren', value: ch });
+        if (err) { alert(err); return; }
+        draftTokens.push({ type: 'paren', value: ch });
+        lastInsertWasSquare = false;
+        _renderPreview();
+        _formulaErr(document.getElementById('err-formula-expr'), '');
+    }
+
+    /** √x：插入函数名与左括号，由用户补全表达式与右括号 */
+    function insertFunc(name) {
+        const err = _validateInsertion({ type: 'func', value: name });
+        if (err) { alert(err); return; }
+        draftTokens.push({ type: 'func', value: name });
+        draftTokens.push({ type: 'paren', value: '(' });
+        lastInsertWasSquare = false;
+        _renderPreview();
+        _formulaErr(document.getElementById('err-formula-expr'), '');
+    }
+
+    /** x²：等价于插入「^ 2」，不扩展解析器 */
+    function insertSquare() {
+        const err1 = _validateInsertion({ type: 'op', value: '^' });
+        if (err1) { alert(err1); return; }
+        draftTokens.push({ type: 'op', value: '^' });
+        const err2 = _validateInsertion({ type: 'number', value: '2' });
+        if (err2) {
+            draftTokens.pop();
+            alert(err2);
+            return;
+        }
+        draftTokens.push({ type: 'number', value: '2' });
+        lastInsertWasSquare = true;
+        _renderPreview();
+        _formulaErr(document.getElementById('err-formula-expr'), '');
+    }
+
+    function backspace() {
+        if (!draftTokens.length) return;
+        if (lastInsertWasSquare &&
+            draftTokens.length >= 2 &&
+            draftTokens[draftTokens.length - 1].type === 'number' && draftTokens[draftTokens.length - 1].value === '2' &&
+            draftTokens[draftTokens.length - 2].type === 'op' && draftTokens[draftTokens.length - 2].value === '^') {
+            draftTokens.pop();
+            draftTokens.pop();
+            lastInsertWasSquare = false;
+            _renderPreview();
+            return;
+        }
+        const last = draftTokens.pop();
+        if (last && last.type === 'paren' && last.value === '(') {
+            const p = draftTokens[draftTokens.length - 1];
+            if (p && p.type === 'func' && p.value === 'sqrt') draftTokens.pop();
+        }
+        lastInsertWasSquare = false;
+        _renderPreview();
+    }
+
+    function resetForm() {
+        draftTokens = [];
+        lastInsertWasSquare = false;
+        const ids = ['cfg-formula-name', 'cfg-formula-label', 'cfg-formula-unit'];
+        ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        _renderPreview();
+        _formulaErr(document.getElementById('err-formula-expr'), '');
+    }
+
+    /** 括号是否匹配 */
+    function _parenBalanced(tokens) {
+        let d = 0;
+        for (const t of tokens) {
+            if (t.type === 'paren') {
+                if (t.value === '(') d++;
+                else if (t.value === ')') {
+                    d--;
+                    if (d < 0) return false;
+                }
+            }
+        }
+        return d === 0;
+    }
+
+    /** 将 token 流转成抽象语法树：expr -> addSub（与方案中的文法一致，^ 右结合） */
+    function _parseToAst(tokens) {
+        const ctx = { tokens, i: 0 };
+        const ast = _parseAddSub(ctx);
+        if (ctx.i < ctx.tokens.length) throw new Error('公式存在无法解析的片段');
+        return ast;
+    }
+
+    /** 加减层 */
+    function _parseAddSub(ctx) {
+        let node = _parseMulDiv(ctx);
+        while (ctx.i < ctx.tokens.length) {
+            const t = ctx.tokens[ctx.i];
+            if (t.type === 'op' && (t.value === '+' || t.value === '-')) {
+                ctx.i++;
+                const right = _parseMulDiv(ctx);
+                node = { type: 'binary', op: t.value, left: node, right };
+            } else break;
+        }
+        return node;
+    }
+
+    /** 乘除层 */
+    function _parseMulDiv(ctx) {
+        let node = _parsePower(ctx);
+        while (ctx.i < ctx.tokens.length) {
+            const t = ctx.tokens[ctx.i];
+            if (t.type === 'op' && (t.value === '*' || t.value === '/')) {
+                ctx.i++;
+                const right = _parsePower(ctx);
+                node = { type: 'binary', op: t.value, left: node, right };
+            } else break;
+        }
+        return node;
+    }
+
+    /** 幂运算：右结合 a^b^c -> a^(b^c) */
+    function _parsePower(ctx) {
+        let node = _parseUnary(ctx);
+        if (ctx.i < ctx.tokens.length) {
+            const t = ctx.tokens[ctx.i];
+            if (t.type === 'op' && t.value === '^') {
+                ctx.i++;
+                const right = _parsePower(ctx);
+                node = { type: 'binary', op: '^', left: node, right };
+            }
+        }
+        return node;
+    }
+
+    /** 一元负号 */
+    function _parseUnary(ctx) {
+        const t = ctx.tokens[ctx.i];
+        if (t && t.type === 'op' && t.value === '-') {
+            ctx.i++;
+            const inner = _parseUnary(ctx);
+            return { type: 'unary', op: '-', expr: inner };
+        }
+        return _parsePrimary(ctx);
+    }
+
+    function _parsePrimary(ctx) {
+        const t = ctx.tokens[ctx.i];
+        if (!t) throw new Error('运算符位置不正确');
+        if (t.type === 'number') {
+            ctx.i++;
+            const v = parseFloat(t.value);
+            if (!Number.isFinite(v)) throw new Error('运算符位置不正确');
+            return { type: 'number', value: v };
+        }
+        if (t.type === 'param') {
+            ctx.i++;
+            return { type: 'param', name: t.value };
+        }
+        if (t.type === 'paren' && t.value === '(') {
+            ctx.i++;
+            const imm = ctx.tokens[ctx.i];
+            if (imm && imm.type === 'paren' && imm.value === ')') throw new Error('括号内不能为空');
+            const inner = _parseAddSub(ctx);
+            const close = ctx.tokens[ctx.i];
+            if (!close || close.type !== 'paren' || close.value !== ')') throw new Error('括号未闭合，请检查公式');
+            ctx.i++;
+            return inner;
+        }
+        if (t.type === 'func') {
+            if (t.value !== 'sqrt') throw new Error('公式计算失败，请检查配置');
+            ctx.i++;
+            const lp = ctx.tokens[ctx.i];
+            if (!lp || lp.type !== 'paren' || lp.value !== '(') throw new Error('函数参数不能为空');
+            ctx.i++;
+            const rpPeek = ctx.tokens[ctx.i];
+            if (rpPeek && rpPeek.type === 'paren' && rpPeek.value === ')') throw new Error('函数参数不能为空');
+            const inner = _parseAddSub(ctx);
+            const rp = ctx.tokens[ctx.i];
+            if (!rp || rp.type !== 'paren' || rp.value !== ')') throw new Error('括号未闭合，请检查公式');
+            ctx.i++;
+            return { type: 'call', name: 'sqrt', args: [inner] };
+        }
+        throw new Error('运算符位置不正确');
+    }
+
+    /** 对 AST 做安全求值（禁止除零、根号负数、非有限数） */
+    function _evalAst(node, vars) {
+        if (node.type === 'number') {
+            const n = node.value;
+            if (!Number.isFinite(n)) throw new Error('公式计算失败，请检查配置');
+            return n;
+        }
+        if (node.type === 'param') {
+            const v = vars[node.name];
+            if (v === null || v === undefined || !Number.isFinite(v)) throw new Error('PARAM_MISSING');
+            return v;
+        }
+        if (node.type === 'unary') {
+            const v = _evalAst(node.expr, vars);
+            return -v;
+        }
+        if (node.type === 'binary') {
+            const L = _evalAst(node.left, vars);
+            const R = _evalAst(node.right, vars);
+            let out;
+            if (node.op === '+') out = L + R;
+            else if (node.op === '-') out = L - R;
+            else if (node.op === '*') out = L * R;
+            else if (node.op === '/') {
+                if (Math.abs(R) < 1e-15) throw new Error('公式中出现除以 0 的情况');
+                out = L / R;
+            } else if (node.op === '^') out = Math.pow(L, R);
+            else throw new Error('公式计算失败，请检查配置');
+            if (!Number.isFinite(out)) throw new Error('公式计算失败，请检查配置');
+            return out;
+        }
+        if (node.type === 'call') {
+            const arg = _evalAst(node.args[0], vars);
+            if (node.name === 'sqrt') {
+                if (arg < 0) throw new Error('根号内结果不能为负数');
+                const out = Math.sqrt(arg);
+                if (!Number.isFinite(out)) throw new Error('公式计算失败，请检查配置');
+                return out;
+            }
+        }
+        throw new Error('公式计算失败，请检查配置');
+    }
+
+    /** 保存前 / 运行期：为每个参数名生成数值（从 Storage 与 DOM 读取） */
+    function _buildVars(scope) {
+        const vars = {};
+        const keys = scope === 'global' ? _allowedParamKeys('global') : _allowedParamKeys(scope);
+        keys.forEach(k => {
+            try {
+                vars[k] = PARAM_DEFS[k].resolve();
+            } catch {
+                vars[k] = null;
+            }
+        });
+        return vars;
+    }
+
+    /** 试算用：每个参数赋予互不相同的安全正数，尽量通过常见分母结构 */
+    function _mockVars(scope) {
+        const vars = {};
+        const keys = scope === 'global' ? _allowedParamKeys('global') : _allowedParamKeys(scope);
+        keys.forEach((k, idx) => { vars[k] = 2.5 + idx * 0.17; });
+        return vars;
+    }
+
+    function _validateTokensFull(tokens, scope) {
+        if (!tokens || !tokens.length) return '请构造公式后再保存';
+        if (!_parenBalanced(tokens)) return '括号未闭合，请检查公式';
+        const allowed = new Set(_allowedParamKeys(scope));
+        for (const t of tokens) {
+            if (t.type === 'param' && !allowed.has(t.value)) return '当前适用工具不允许使用该参数';
+        }
+        let ast;
+        try {
+            ast = _parseToAst(tokens);
+        } catch (e) {
+            return e.message || '运算符位置不正确';
+        }
+        try {
+            _evalAst(ast, _mockVars(scope));
+        } catch (e) {
+            if (e.message === 'PARAM_MISSING') return '试算失败：参数表异常';
+            return e.message || '公式计算失败，请检查配置';
+        }
+        return null;
+    }
+
+    function _displayExpressionFromDraft() {
+        return draftTokens.map(_previewToken).join(' ');
+    }
+
+    function save() {
+        const errEl = document.getElementById('err-formula-expr');
+        _formulaErr(errEl, '');
+        const nameEl = document.getElementById('cfg-formula-name');
+        const labelEl = document.getElementById('cfg-formula-label');
+        const unitEl = document.getElementById('cfg-formula-unit');
+        const scopeEl = document.getElementById('cfg-formula-scope');
+        const name = (nameEl && nameEl.value || '').trim();
+        const outputLabel = (labelEl && labelEl.value || '').trim();
+        const outputUnit = (unitEl && unitEl.value || '').trim();
+        const scope = scopeEl ? scopeEl.value : 'global';
+        if (!name) { _formulaErr(errEl, '请填写公式名称'); return; }
+        if (!outputLabel) { _formulaErr(errEl, '请填写结果标签'); return; }
+        const msg = _validateTokensFull(draftTokens, scope);
+        if (msg) { _formulaErr(errEl, msg); return; }
+        const list = Storage.getCustomFormulas().slice();
+        const row = {
+            id: 'cf_' + Date.now(),
+            name,
+            scope,
+            tokens: JSON.parse(JSON.stringify(draftTokens)),
+            displayExpression: _displayExpressionFromDraft(),
+            outputLabel,
+            outputUnit,
+            version: 2,
+            createdAt: new Date().toISOString()
+        };
+        list.push(row);
+        Storage.setCustomFormulas(list);
+        const ok = document.getElementById('formula-success');
+        if (ok) {
+            ok.style.display = 'block';
+            setTimeout(() => { ok.style.display = 'none'; }, 2500);
+        }
+        resetForm();
+        _renderSavedList();
+    }
+
+    function deleteFormula(id) {
+        if (!confirm('确定删除该自定义公式？')) return;
+        const list = Storage.getCustomFormulas().filter(f => f.id !== id);
+        Storage.setCustomFormulas(list);
+        _renderSavedList();
+    }
+
+    function _renderSavedList() {
+        const host = document.getElementById('cfg-formula-list');
+        if (!host) return;
+        const list = Storage.getCustomFormulas();
+        if (!list.length) {
+            host.innerHTML = '<div style="color:#aaa;text-align:center;padding:20px;">暂无自定义公式</div>';
+            return;
+        }
+        host.innerHTML = list.map(f => {
+            return '<div class="form-row-inline" style="align-items:center;border-bottom:1px solid var(--border);padding:10px 0;">' +
+                '<div class="form-control-inline" style="flex:1;">' +
+                '<strong>' + _escapeHtml(f.name) + '</strong> ' +
+                '<small style="color:#888;">' + _escapeHtml(f.displayExpression || '') + '</small><br>' +
+                '<small>作用域：' + _escapeHtml(f.scope) + ' · 结果：' + _escapeHtml(f.outputLabel) +
+                (f.outputUnit ? '（' + _escapeHtml(f.outputUnit) + '）' : '') + '</small></div>' +
+                '<button type="button" class="btn btn-outline" onclick="CustomFormulas.deleteFormula(\'' + String(f.id).replace(/'/g, '') + '\')">删除</button></div>';
+        }).join('');
+    }
+
+    /**
+     * 在指定工具计算成功后，渲染该工具及 global 作用域下的公式结果
+     * 单条失败不抛错，仅展示友好文案
+     */
+    function renderForTool(scope, containerId) {
+        const host = document.getElementById(containerId);
+        if (!host) return;
+        const formulas = Storage.getCustomFormulas().filter(f => f && (f.scope === scope || f.scope === 'global'));
+        if (!formulas.length) {
+            host.innerHTML = '';
+            return;
+        }
+        const vars = _buildVars(scope);
+        const rows = [];
+        for (const f of formulas) {
+            const tokens = f.tokens;
+            if (!tokens || !tokens.length) continue;
+            try {
+                const ast = _parseToAst(tokens);
+                const val = _evalAst(ast, vars);
+                if (!Number.isFinite(val)) throw new Error('公式计算失败，请检查配置');
+                const unit = f.outputUnit ? ' ' + f.outputUnit : '';
+                rows.push('<div class="detail-row"><span class="detail-row-label">' + _escapeHtml(f.outputLabel || f.name) +
+                    '</span><span class="detail-row-value">' + _escapeHtml(Number(val).toFixed(4)) + _escapeHtml(unit) + '</span></div>');
+            } catch (e) {
+                const msg = e.message === 'PARAM_MISSING' ? '当前页面有必需参数未填写' :
+                    (e.message || '公式计算失败，请检查配置');
+                rows.push('<div class="detail-row"><span class="detail-row-label">' + _escapeHtml(f.outputLabel || f.name) +
+                    '</span><span class="detail-row-value" style="color:#999;">' + _escapeHtml(msg) + '</span></div>');
+            }
+        }
+        host.innerHTML = '<div class="card-title" style="font-size:13px;margin-bottom:8px;opacity:.85;">自定义指标</div>' +
+            '<div class="detail-list">' + rows.join('') + '</div>';
+    }
+
+    function init() {
+        _renderParamButtons();
+        _renderPreview();
+        _renderSavedList();
+    }
+
+    /** 将「自定义数值」输入框中的合法数字插入公式草稿（复用 insertNumber，与快捷按钮口径一致） */
+    function insertCustomNumber() {
+        const input = document.getElementById('cfg-formula-custom-num');
+        if (!input) return;
+        const val = input.value.trim();
+        const num = parseFloat(val);
+        if (!Number.isFinite(num)) { alert('请输入有效数字'); return; }
+        insertNumber(String(num));
+        input.value = '';
+    }
+
+    return {
+        init, onScopeChange,
+        insertParam, insertOp, insertParen, insertFunc, insertNumber, insertSquare,
+        insertCustomNumber,
+        backspace, resetForm, save, deleteFormula, renderForTool
+    };
+})();
+
+/* ============================================================
    模块 7：Export — 打印导出 PNG
    将输入参数、计算结果和图表写入 #print-area，调用 window.print()
    ============================================================ */
@@ -3385,7 +4325,10 @@ const ToolFixedTerm = (() => {
     /** 用户点击「计算」：recalc 成功写入 lastResult 后再记一次统计 */
     function calculate() {
         recalc();
-        if (lastResult) Storage.recordCalc('fixedTerm', Auth.getSession());
+        if (lastResult) {
+            Storage.recordCalc('fixedTerm', Auth.getSession());
+            if (typeof CustomFormulas !== 'undefined') CustomFormulas.renderForTool('fixedTerm', 'ft-custom-results');
+        }
     }
 
     /** 单票收益公式（冻结） */
@@ -3706,7 +4649,10 @@ const ToolBreakeven = (() => {
     /** 用户点击「计算」：recalc 成功写入 lastResult 后再记一次统计 */
     function calculate() {
         recalc();
-        if (lastResult) Storage.recordCalc('breakeven', Auth.getSession());
+        if (lastResult) {
+            Storage.recordCalc('breakeven', Auth.getSession());
+            if (typeof CustomFormulas !== 'undefined') CustomFormulas.renderForTool('breakeven', 'be-custom-results');
+        }
     }
 
     function _showResult(futureAmount, increase, spread, currentRatioP, currentPrice, targetRatioP, avgExposure, avgMargin, cfg, derived) {
@@ -4058,6 +5004,20 @@ const ExportBreakeven = (() => {
         const result = ToolBreakeven.getLastResult();
         if (!result) { alert('请先完成一次有效计算'); return; }
         PrintService.exportPNG('be-two-col', '承兑-收益打平测算报告');
+    }
+
+    return { printPDF };
+})();
+
+/* ============================================================
+   模块 13b：ExportMargin — 承兑保证金比例计算器导出（PNG）
+   与 ExportFixedTerm / ExportBreakeven 命名一致：printPDF 实际调用 PrintService.exportPNG
+   ============================================================ */
+const ExportMargin = (() => {
+    function printPDF() {
+        const result = ToolMargin.getLastResult();
+        if (!result) { alert('请先完成一次有效计算'); return; }
+        PrintService.exportPNG('margin-two-col', '承兑保证金比例计算报告');
     }
 
     return { printPDF };
