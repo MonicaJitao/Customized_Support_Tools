@@ -1219,10 +1219,10 @@ input, button, select, textarea { font-family: inherit; }
     try {
       const supabaseUrl = 'https://xfialyosyeqdrghtzxpk.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmaWFseW9zeWVxZHJnaHR6eHBrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NDIxMDYsImV4cCI6MjA5MjMxODEwNn0.Jgi32-R2ijmKM9hQiofBXJthwEkMTR4vVgIhV7XR0VU';
-      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
       window._firestore = {
         addLog: function(entry) {
+          const supabase = supabase.createClient(supabaseUrl, supabaseKey);
           return supabase
             .from('usage_logs')
             .insert([entry])
@@ -1235,6 +1235,7 @@ input, button, select, textarea { font-family: inherit; }
             .catch(function(e) { console.warn('Supabase write failed', e); });
         },
         getLogs: function(n) {
+          const supabase = supabase.createClient(supabaseUrl, supabaseKey);
           return supabase
             .from('usage_logs')
             .select('*')
@@ -1250,6 +1251,7 @@ input, button, select, textarea { font-family: inherit; }
             .catch(function(e) { console.warn('Supabase read failed', e); return null; });
         },
         clearLogs: function() {
+          const supabase = supabase.createClient(supabaseUrl, supabaseKey);
           return supabase
             .from('usage_logs')
             .delete()
