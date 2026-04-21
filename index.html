@@ -1213,36 +1213,57 @@ input, button, select, textarea { font-family: inherit; }
 </style>
 <!-- html2canvas：用于将网页元素截图为 PNG 图片 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   (function() {
     try {
-      firebase.initializeApp({
-        apiKey: "AIzaSyAtS-kNXl-_WvemMWr1apxflMjEfM2eDx8",
-        authDomain: "data-5d984.firebaseapp.com",
-        projectId: "data-5d984",
-        storageBucket: "data-5d984.firebasestorage.app",
-        messagingSenderId: "322455281975",
-        appId: "1:322455281975:web:4d492cf2d68c0ad00cbab2"
-      });
-      var db = firebase.firestore();
+      const supabaseUrl = 'https://xfialyosyeqdrghtzxpk.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmaWFseW9zeWVxZHJnaHR6eHBrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NDIxMDYsImV4cCI6MjA5MjMxODEwNn0.Jgi32-R2ijmKM9hQiofBXJthwEkMTR4vVgIhV7XR0VU';
+      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
       window._firestore = {
         addLog: function(entry) {
-          return db.collection('usageLogs').add(entry).catch(function(e) { console.warn('Firestore write failed', e); });
+          return supabase
+            .from('usageLogs')
+            .insert([entry])
+            .then(({ error }) => {
+              if (error) {
+                console.warn('Supabase write failed', error);
+                throw error;
+              }
+            })
+            .catch(function(e) { console.warn('Supabase write failed', e); });
         },
         getLogs: function(n) {
-          return db.collection('usageLogs').orderBy('time', 'desc').limit(n || 200).get()
-            .then(function(snap) { return snap.docs.map(function(d) { return d.data(); }); })
-            .catch(function(e) { console.warn('Firestore read failed', e); return null; });
+          return supabase
+            .from('usageLogs')
+            .select('*')
+            .order('time', { ascending: false })
+            .limit(n || 200)
+            .then(({ data, error }) => {
+              if (error) {
+                console.warn('Supabase read failed', error);
+                return null;
+              }
+              return data;
+            })
+            .catch(function(e) { console.warn('Supabase read failed', e); return null; });
         },
         clearLogs: function() {
-          return db.collection('usageLogs').get().then(function(snap) {
-            return Promise.all(snap.docs.map(function(d) { return d.ref.delete(); }));
-          }).catch(function(e) { console.warn('Firestore clear failed', e); });
+          return supabase
+            .from('usageLogs')
+            .delete()
+            .gt('time', 0)
+            .then(({ error }) => {
+              if (error) {
+                console.warn('Supabase clear failed', error);
+                throw error;
+              }
+            })
+            .catch(function(e) { console.warn('Supabase clear failed', e); });
         }
       };
-    } catch(e) { console.warn('Firebase init failed', e); }
+    } catch(e) { console.warn('Supabase init failed', e); }
   })();
 </script>
 </head>
