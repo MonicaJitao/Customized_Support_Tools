@@ -1224,7 +1224,7 @@ input, button, select, textarea { font-family: inherit; }
       window._firestore = {
         addLog: function(entry) {
           return supabase
-            .from('usageLogs')
+            .from('usage_logs')
             .insert([entry])
             .then(({ error }) => {
               if (error) {
@@ -1236,7 +1236,7 @@ input, button, select, textarea { font-family: inherit; }
         },
         getLogs: function(n) {
           return supabase
-            .from('usageLogs')
+            .from('usage_logs')
             .select('*')
             .order('time', { ascending: false })
             .limit(n || 200)
@@ -1251,9 +1251,9 @@ input, button, select, textarea { font-family: inherit; }
         },
         clearLogs: function() {
           return supabase
-            .from('usageLogs')
+            .from('usage_logs')
             .delete()
-            .gt('time', 0)
+            .neq('time', null)
             .then(({ error }) => {
               if (error) {
                 console.warn('Supabase clear failed', error);
