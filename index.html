@@ -44,6 +44,14 @@
     --warning-tint-border: #FFD591;
     --chart-curve:     #165DFF;
 
+    /* 暖色系辅助变量 */
+    --ivory-warm:          #fafaf6;  /* 暖白底：卡片/表头/派生信息 */
+    --border-warm:         #f0ede6;  /* 暖灰边：分隔线 */
+    --row-hover:           #fdfcf8;  /* 表格 hover */
+    --success-tint-bg:     #edf7f0;  /* 成功提示背景 */
+    --success-tint-border: #a3d9b1;  /* 成功提示边框 */
+    --formula-surface:     #FAFBFC;  /* 公式展开区背景 */
+
     /* 字体栈：离线可用，不依赖外网 */
     --font-stack: "Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Segoe UI",sans-serif;
 }
@@ -321,7 +329,6 @@ input, button, select, textarea { font-family: inherit; }
     background: var(--border);
     color: var(--ink-mid);
     cursor: not-allowed;
-    color: var(--ink-mid);
 }
 .form-help {
     margin-top: 4px;
@@ -416,8 +423,8 @@ input, button, select, textarea { font-family: inherit; }
 }
 .alert-warning.show { display: block; }
 .alert-success {
-    background: #edf7f0;
-    border: 1px solid #a3d9b1;
+    background: var(--success-tint-bg);
+    border: 1px solid var(--success-tint-border);
     color: var(--success);
     padding: 10px 14px;
     border-radius: 4px;
@@ -478,7 +485,7 @@ input, button, select, textarea { font-family: inherit; }
     flex: 1;
     text-align: center;
     padding: 18px;
-    background: #fafaf6;
+    background: var(--ivory-warm);
     border-radius: 6px;
     border: 1px solid var(--border);
 }
@@ -504,7 +511,7 @@ input, button, select, textarea { font-family: inherit; }
     display: flex;
     justify-content: space-between;
     padding: 10px 0;
-    border-bottom: 1px solid #f0ede6;
+    border-bottom: 1px solid var(--border-warm);
     font-size: 13px;
 }
 .detail-row-label { color: var(--ink-mid); }
@@ -520,7 +527,7 @@ input, button, select, textarea { font-family: inherit; }
 /* 历史记录表格 */
 .history-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
 .history-table th {
-    background: #fafaf6;
+    background: var(--ivory-warm);
     padding: 10px 14px;
     text-align: left;
     font-weight: 600;
@@ -530,16 +537,16 @@ input, button, select, textarea { font-family: inherit; }
 .history-table td {
     padding: 10px 14px;
     color: var(--ink-mid);
-    border-bottom: 1px solid #f0ede6;
+    border-bottom: 1px solid var(--border-warm);
 }
-.history-table tr:hover td { background: #fdfcf8; }
+.history-table tr:hover td { background: var(--row-hover); }
 .status-badge {
     display: inline-block;
     padding: 2px 8px;
     border-radius: 2px;
     font-size: 11px;
 }
-.status-active { background: #edf7f0; color: var(--success); border: 1px solid #a3d9b1; }
+.status-active { background: var(--success-tint-bg); color: var(--success); border: 1px solid var(--success-tint-border); }
 .status-inactive { background: var(--warning-tint-bg); color: var(--warning); border: 1px solid var(--warning-tint-border); }
 .action-link {
     color: var(--chart-curve);
@@ -610,7 +617,7 @@ input, button, select, textarea { font-family: inherit; }
 .formula-block summary:hover { background: var(--blue-tint); }
 .formula-body {
     padding: 16px;
-    background: #FAFBFC;
+    background: var(--formula-surface);
     border-top: 1px solid var(--border);
 }
 .formula-section {
@@ -805,7 +812,7 @@ input, button, select, textarea { font-family: inherit; }
     vertical-align: middle;
 }
 .compare-table td:first-child { text-align: left; font-weight: 500; color: var(--ink); }
-.compare-table tr:hover td { background: #fdfcf8; }
+.compare-table tr:hover td { background: var(--row-hover); }
 .compare-table .input-cell { padding: 6px 8px; }
 .compare-table .input-cell input,
 .compare-table .input-cell select {
@@ -839,7 +846,7 @@ input, button, select, textarea { font-family: inherit; }
 .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
 .analysis-item {
     padding: 14px 16px;
-    background: #fafaf6;
+    background: var(--ivory-warm);
     border: 1px solid var(--border);
     border-radius: 6px;
 }
@@ -888,7 +895,7 @@ input, button, select, textarea { font-family: inherit; }
     display: none;
 }
 .approval-hint.show { display: block; }
-.approval-hint-team { background: #edf7f0; border: 1px solid #a3d9b1; color: var(--success); }
+.approval-hint-team { background: var(--success-tint-bg); border: 1px solid var(--success-tint-border); color: var(--success); }
 .approval-hint-leader { background: var(--warning-tint-bg); border: 1px solid var(--warning-tint-border); color: var(--warning); }
 .approval-hint-exceed { background: #fdf0ef; border: 1px solid #f5c6c2; color: var(--danger); }
 
@@ -900,8 +907,8 @@ input, button, select, textarea { font-family: inherit; }
     border-radius: 4px;
     font-size: 12px;
     line-height: 1.4;
-    border: 1px solid #e6e3d9;
-    background: #fbfaf6;
+    border: 1px solid var(--border-warm);
+    background: var(--ivory-warm);
     color: var(--ink-light);
 }
 .soft-hint.show { display: block; }
@@ -1244,11 +1251,12 @@ input, button, select, textarea { font-family: inherit; }
               .catch(function(e) { console.warn('Supabase write failed', e); });
           },
           getLogs: function(n) {
+            var cap = (n != null && n !== '') ? n : 100000;
             return client
               .from('usage_logs')
               .select('*')
               .order('time', { ascending: false })
-              .limit(n || 200)
+              .limit(cap)
               .then(({ data, error }) => {
                 if (error) {
                   console.warn('Supabase read failed', error);
@@ -1897,7 +1905,7 @@ input, button, select, textarea { font-family: inherit; }
                     <div class="form-row-inline">
                         <label class="form-label-inline">非520客户兜底价格</label>
                         <div class="form-control-inline">
-                            <div style="padding:10px 14px;background:#fafaf6;border-radius:4px;color:var(--ink-mid);font-size:13px;">max(业务成本 + 风险成本, 非520客户兜底价格下限)</div>
+                            <div style="padding:10px 14px;background:var(--ivory-warm);border-radius:4px;color:var(--ink-mid);font-size:13px;">max(业务成本 + 风险成本, 非520客户兜底价格下限)</div>
                             <div class="form-help">由系统自动计算，业务成本和风险成本来自公共参数</div>
                         </div>
                     </div>
@@ -2207,7 +2215,7 @@ input, button, select, textarea { font-family: inherit; }
                     </table>
                 </div>
                 <div style="margin-bottom:16px;">
-                    <div class="card-title" style="font-size:14px;margin-bottom:8px;">操作日志（最近 200 条）</div>
+                    <div class="card-title" style="font-size:14px;margin-bottom:8px;">操作日志</div>
                     <table class="history-table">
                         <thead><tr><th>模块</th><th>姓名</th><th>团队</th><th>城市/区域</th><th>时间</th></tr></thead>
                         <tbody id="stats-logs-body"></tbody>
@@ -2475,7 +2483,7 @@ const Storage = (() => {
     /* —— 各模块测算次数与操作日志（与业务配置 key 分离，持久化在 usageStats） —— */
     const DEFAULT_STATS = { counts: { priceAdjust: 0, margin: 0, fixedTerm: 0, breakeven: 0 }, logs: [] };
 
-    /** 读取统计：counts 与默认合并，logs 为数组（可无限增长，面板只展示尾部） */
+    /** 读取统计：counts 与默认合并，logs 为数组（可无限增长，面板展示全部） */
     function getStats() {
         const saved = get('usageStats', DEFAULT_STATS);
         return { counts: { ...DEFAULT_STATS.counts, ...(saved.counts || {}) }, logs: saved.logs || [] };
@@ -3441,7 +3449,7 @@ const StatsPanel = (() => {
         breakeven: '承兑-收益打平测算'
     };
 
-    /** 刷新次数表与最近 200 条日志（优先从 Firestore 拉取，降级到 localStorage） */
+    /** 刷新次数表与全部日志（优先从 Supabase 拉取，降级到 localStorage） */
     function refresh() {
         const logsBody = document.getElementById('stats-logs-body');
         const countsBody = document.getElementById('stats-counts-body');
@@ -3464,14 +3472,14 @@ const StatsPanel = (() => {
         }
 
         if (window._firestore) {
-            window._firestore.getLogs(500).then(logs => {
+            window._firestore.getLogs().then(logs => {
                 if (logs) { renderLogs(logs); return; }
                 const stats = Storage.getStats();
-                renderLogs((stats.logs || []).slice(-200).reverse());
+                renderLogs((stats.logs || []).slice().reverse());
             });
         } else {
             const stats = Storage.getStats();
-            renderLogs((stats.logs || []).slice(-200).reverse());
+            renderLogs((stats.logs || []).slice().reverse());
         }
     }
 
@@ -5119,12 +5127,9 @@ const ExportMargin = (() => {
 const MobileNav = (() => {
     function toggle() {
         const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebarOverlay');
-        const btn = document.getElementById('mobileMenuBtn');
+        if (!sidebar) return;
 
-        const isOpen = sidebar.classList.contains('open');
-
-        if (isOpen) {
+        if (sidebar.classList.contains('open')) {
             close();
         } else {
             open();
@@ -5164,7 +5169,6 @@ const MobileNav = (() => {
             /* 已登录，直接进入主应用 */
             UI.enterApp(session);
         }
-        /* 否则停留在登录页 */
 
         /* 绑定回车键登录 */
         document.getElementById('loginPassword').addEventListener('keydown', function(e) {

@@ -1,3 +1,4 @@
+1b5f27a|2026-04-21|Monica|修改调价计算器兜底价格默认值 520客户以及非520客户兜底价格为3.60
 6aa25d3|2026-04-21|Monica|修改调价计算器兜底价格默认值 520客户兜底价格为3.60 非520客户兜底价格为9.10
 e35d1a7|2026-04-21|Monica|对 Firebase 集成进行了优化以提高稳定性 从模块化的 Firebase SDK 更改为兼容性 SDK，从而提高了浏览器兼容性，并简化了其在现有脚本环境中的集成过程。 在 Firebase 初始化和使用日志功能周围引入了强大的错误处理机制，以防止出现严重故障，并确保在 Firebase 服务不可用或配置错误的情况下，应用程序能够平稳降级运行。将设置操作封装在一个立即执行函数表达式（IIFE）中，以更好地进行作用域管理。
 9d7e60a|2026-04-21|Monica|Merge branch 'master' of https://github.com/MonicaJitao/Customized_Support_Tools
