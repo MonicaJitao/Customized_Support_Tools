@@ -1,0 +1,36 @@
+6aa25d3|2026-04-21|Monica|修改调价计算器兜底价格默认值 520客户兜底价格为3.60 非520客户兜底价格为9.10
+e35d1a7|2026-04-21|Monica|对 Firebase 集成进行了优化以提高稳定性 从模块化的 Firebase SDK 更改为兼容性 SDK，从而提高了浏览器兼容性，并简化了其在现有脚本环境中的集成过程。 在 Firebase 初始化和使用日志功能周围引入了强大的错误处理机制，以防止出现严重故障，并确保在 Firebase 服务不可用或配置错误的情况下，应用程序能够平稳降级运行。将设置操作封装在一个立即执行函数表达式（IIFE）中，以更好地进行作用域管理。
+9d7e60a|2026-04-21|Monica|Merge branch 'master' of https://github.com/MonicaJitao/Customized_Support_Tools
+f387ed2|2026-04-21|Monica|Merge branch 'master' of https://github.com/MonicaJitao/Customized_Support_Tools
+388a0d0|2026-04-20|lc10051024-byte|数据库
+00902ba|2026-04-20|Monica|调整了定期计算结果的用户界面设计 将定期计算的利润汇总数据和详细结果指标整合到一张统一的显示卡片中。这一改动提升了用户体验，因为它将所有计算结果以一个连贯的区块形式呈现，并且该区块会一同出现或消失。 从输入表和结果表中删除“差异（B - A）”这一列，使比较视图更加简洁，仅聚焦于各个方案的值。更新相关的 JavaScript 逻辑以反映这些用户界面的更改。
+217a4ea|2026-04-20|Monica|整合定期工具结果展示 将绝对收益分析、自定义公式结果和图表部分合并到定期计算工具的单个结果卡片中。这简化了结果的展示和交互，优化了整体布局和导出兼容性。 此外，将自定义公式配置按钮的宽度扩展为占据全部空间，同时不影响其他内联表单控件。
+51829dd|2026-04-20|Monica|增加了自定义公式构建器和显示功能 在配置中心新增了“自定义公式”部分，允许用户定义和计算自定义指标。 此功能支持： - 通过现有系统参数和用户输入构建、预览和保存公式的交互式用户界面。 - 在公式构建过程中进行实时语法验证，并将其稳健地解析为抽象语法树（AST）以进行安全评估。 - 在成功计算后，在价格调整、利润率、固定期限和盈亏平衡计算器页面上动态显示自定义公式的结果。 - 用户定义的公式在会话之间保持持久性。 此外，为接受度公差比计算器实现了一个专用的 PNG 导出按钮和功能，使其报告功能与其他工具保持一致。
+61fe470|2026-04-20|Monica|Merge branch 'master' of https://github.com/MonicaJitao/Customized_Support_Tools
+ca08ce5|2026-04-20|lc10051024-byte|配置变为一页
+8986c2f|2026-04-20|lc10051024-byte|配置一页
+acfed9a|2026-04-20|Monica|Relocates and restyles common input parameters
+366c48b|2026-04-17|lc10051024-byte|优化_团队长权限移动
+849ee45|2026-04-17|lc10051024-byte|保证金_基本法系数%
+219c67d|2026-04-17|Monica|价格过低仍显示计算结果；客户经理使用统计信息
+783a39e|2026-04-17|lc10051024-byte|颜色统一
+920a997|2026-04-16|lc10051024-byte|目标方案A框大小
+a380c73|2026-04-16|lc10051024-byte|基本法系数_提示
+a059c42|2026-04-16|Monica|目标保证金比例上限改为100
+ffee51b|2026-04-16|Monica|小数位数调整
+5412e28|2026-04-16|lc10051024-byte|公式展示
+3b03ce5|2026-04-16|Monica|修改配色方案为微众风格
+1cf5024|2026-04-16|Monica|更改网页命名和路径以适配github pages
+62da93d|2026-04-16|Monica|添加 PC 与移动端集成页 index_PC_and_Mobile.html
+787cf80|2026-04-16|Monica|Merge branch 'master' of https://github.com/MonicaJitao/Customized_Support_Tools
+40266d3|2026-04-16|Monica|Merge branch 'master' of https://github.com/MonicaJitao/Customized_Support_Tools
+e871d58|2026-04-16|Monica|Merge branch 'master' of https://github.com/MonicaJitao/Customized_Support_Tools_New
+bbb283f|2026-04-15|MonicaJitao|Create CNAME
+d4b7ff0|2026-04-15|MonicaJitao|Delete CNAME
+ee4f9e9|2026-04-15|Monica|PDF导出->PNG导出
+bc0bba3|2026-04-15|MonicaJitao|Create CNAME
+2fb51d1|2026-04-15|Monica|移动index.html位置
+14688c5|2026-04-15|Monica|保存当前修改
+0161033|2026-04-15|Monica|增加两个承兑界面
+9bb54c3|2026-04-15|Monica|Add .gitignore and remove .claude, .qwen, .cursor from tracking
+0fde05c|2026-04-15|Monica|Initial commit: 微众银行一户一策小工具
