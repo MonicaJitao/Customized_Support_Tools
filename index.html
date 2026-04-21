@@ -1213,59 +1213,69 @@ input, button, select, textarea { font-family: inherit; }
 </style>
 <!-- html2canvas：用于将网页元素截图为 PNG 图片 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   (function() {
-    try {
-      const supabaseUrl = 'https://xfialyosyeqdrghtzxpk.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmaWFseW9zeWVxZHJnaHR6eHBrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NDIxMDYsImV4cCI6MjA5MjMxODEwNn0.Jgi32-R2ijmKM9hQiofBXJthwEkMTR4vVgIhV7XR0VU';
+    function waitForSupabase(callback) {
+      if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+        callback(window.supabase);
+      } else {
+        setTimeout(function() { waitForSupabase(callback); }, 100);
+      }
+    }
 
-      window._firestore = {
-        addLog: function(entry) {
-          const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-          return supabase
-            .from('usage_logs')
-            .insert([entry])
-            .then(({ error }) => {
-              if (error) {
-                console.warn('Supabase write failed', error);
-                throw error;
-              }
-            })
-            .catch(function(e) { console.warn('Supabase write failed', e); });
-        },
-        getLogs: function(n) {
-          const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-          return supabase
-            .from('usage_logs')
-            .select('*')
-            .order('time', { ascending: false })
-            .limit(n || 200)
-            .then(({ data, error }) => {
-              if (error) {
-                console.warn('Supabase read failed', error);
-                return null;
-              }
-              return data;
-            })
-            .catch(function(e) { console.warn('Supabase read failed', e); return null; });
-        },
-        clearLogs: function() {
-          const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-          return supabase
-            .from('usage_logs')
-            .delete()
-            .neq('time', null)
-            .then(({ error }) => {
-              if (error) {
-                console.warn('Supabase clear failed', error);
-                throw error;
-              }
-            })
-            .catch(function(e) { console.warn('Supabase clear failed', e); });
-        }
-      };
-    } catch(e) { console.warn('Supabase init failed', e); }
+    waitForSupabase(function(supabaseLib) {
+      try {
+        const supabaseUrl = 'https://xfialyosyeqdrghtzxpk.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmaWFseW9zeWVxZHJnaHR6eHBrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NDIxMDYsImV4cCI6MjA5MjMxODEwNn0.Jgi32-R2ijmKM9hQiofBXJthwEkMTR4vVgIhV7XR0VU';
+        const client = supabaseLib.createClient(supabaseUrl, supabaseKey);
+
+        window._firestore = {
+          addLog: function(entry) {
+            return client
+              .from('usage_logs')
+              .insert([entry])
+              .then(({ error }) => {
+                if (error) {
+                  console.warn('Supabase write failed', error);
+                  throw error;
+                }
+              })
+              .catch(function(e) { console.warn('Supabase write failed', e); });
+          },
+          getLogs: function(n) {
+            return client
+              .from('usage_logs')
+              .select('*')
+              .order('time', { ascending: false })
+              .limit(n || 200)
+              .then(({ data, error }) => {
+                if (error) {
+                  console.warn('Supabase read failed', error);
+                  return null;
+                }
+                return data;
+              })
+              .catch(function(e) { console.warn('Supabase read failed', e); return null; });
+          },
+          clearLogs: function() {
+            return client
+              .from('usage_logs')
+              .delete()
+              .neq('time', null)
+              .then(({ error }) => {
+                if (error) {
+                  console.warn('Supabase clear failed', error);
+                  throw error;
+                }
+              })
+              .catch(function(e) { console.warn('Supabase clear failed', e); });
+          }
+        };
+      } catch(e) {
+        console.warn('Supabase init failed', e);
+      }
+    });
   })();
 </script>
 </head>
