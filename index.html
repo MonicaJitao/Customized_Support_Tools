@@ -1213,40 +1213,37 @@ input, button, select, textarea { font-family: inherit; }
 </style>
 <!-- html2canvas：用于将网页元素截图为 PNG 图片 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAtS-kNXl-_WvemMWr1apxflMjEfM2eDx8",
-    authDomain: "data-5d984.firebaseapp.com",
-    projectId: "data-5d984",
-    storageBucket: "data-5d984.firebasestorage.app",
-    messagingSenderId: "322455281975",
-    appId: "1:322455281975:web:4d492cf2d68c0ad00cbab2"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  window._firestore = {
-    async addLog(entry) {
-      try { await addDoc(collection(db, 'usageLogs'), entry); } catch(e) { console.warn('Firestore write failed', e); }
-    },
-    async getLogs(n = 200) {
-      try {
-        const q = query(collection(db, 'usageLogs'), orderBy('time', 'desc'), limit(n));
-        const snap = await getDocs(q);
-        return snap.docs.map(d => d.data());
-      } catch(e) { console.warn('Firestore read failed', e); return null; }
-    },
-    async clearLogs() {
-      try {
-        const snap = await getDocs(collection(db, 'usageLogs'));
-        await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'usageLogs', d.id))));
-      } catch(e) { console.warn('Firestore clear failed', e); }
-    }
-  };
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  (function() {
+    try {
+      firebase.initializeApp({
+        apiKey: "AIzaSyAtS-kNXl-_WvemMWr1apxflMjEfM2eDx8",
+        authDomain: "data-5d984.firebaseapp.com",
+        projectId: "data-5d984",
+        storageBucket: "data-5d984.firebasestorage.app",
+        messagingSenderId: "322455281975",
+        appId: "1:322455281975:web:4d492cf2d68c0ad00cbab2"
+      });
+      var db = firebase.firestore();
+      window._firestore = {
+        addLog: function(entry) {
+          return db.collection('usageLogs').add(entry).catch(function(e) { console.warn('Firestore write failed', e); });
+        },
+        getLogs: function(n) {
+          return db.collection('usageLogs').orderBy('time', 'desc').limit(n || 200).get()
+            .then(function(snap) { return snap.docs.map(function(d) { return d.data(); }); })
+            .catch(function(e) { console.warn('Firestore read failed', e); return null; });
+        },
+        clearLogs: function() {
+          return db.collection('usageLogs').get().then(function(snap) {
+            return Promise.all(snap.docs.map(function(d) { return d.ref.delete(); }));
+          }).catch(function(e) { console.warn('Firestore clear failed', e); });
+        }
+      };
+    } catch(e) { console.warn('Firebase init failed', e); }
+  })();
 </script>
 </head>
 <body>
