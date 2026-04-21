@@ -1213,6 +1213,41 @@ input, button, select, textarea { font-family: inherit; }
 </style>
 <!-- html2canvas：用于将网页元素截图为 PNG 图片 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAtS-kNXl-_WvemMWr1apxflMjEfM2eDx8",
+    authDomain: "data-5d984.firebaseapp.com",
+    projectId: "data-5d984",
+    storageBucket: "data-5d984.firebasestorage.app",
+    messagingSenderId: "322455281975",
+    appId: "1:322455281975:web:4d492cf2d68c0ad00cbab2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window._firestore = {
+    async addLog(entry) {
+      try { await addDoc(collection(db, 'usageLogs'), entry); } catch(e) { console.warn('Firestore write failed', e); }
+    },
+    async getLogs(n = 200) {
+      try {
+        const q = query(collection(db, 'usageLogs'), orderBy('time', 'desc'), limit(n));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => d.data());
+      } catch(e) { console.warn('Firestore read failed', e); return null; }
+    },
+    async clearLogs() {
+      try {
+        const snap = await getDocs(collection(db, 'usageLogs'));
+        await Promise.all(snap.docs.map(d => deleteDoc(doc(db, 'usageLogs', d.id))));
+      } catch(e) { console.warn('Firestore clear failed', e); }
+    }
+  };
+</script>
 </head>
 <body>
 <!-- ============================================================
@@ -2425,18 +2460,23 @@ const Storage = (() => {
         const stats = getStats();
         stats.counts[tool] = (stats.counts[tool] || 0) + 1;
         const s = session || {};
-        stats.logs.push({
+        const entry = {
             tool,
             operator: s.operator || s.role || 'unknown',
             team: s.team || '',
             region: s.region || '',
             time: new Date().toISOString()
-        });
+        };
+        stats.logs.push(entry);
         set('usageStats', stats);
+        if (window._firestore) window._firestore.addLog(entry);
     }
 
     /** 清空统计（管理员在配置页操作，建议先导出 JSON） */
-    function resetStats() { set('usageStats', DEFAULT_STATS); }
+    function resetStats() {
+        set('usageStats', DEFAULT_STATS);
+        if (window._firestore) window._firestore.clearLogs();
+    }
 
     /** 读取管理员配置的自定义公式列表（token 结构，见 CustomFormulas 模块） */
     function getCustomFormulas() { return get('customFormulas', []); }
@@ -3371,21 +3411,37 @@ const StatsPanel = (() => {
         breakeven: '承兑-收益打平测算'
     };
 
-    /** 刷新次数表与最近 200 条日志（日志全量存 localStorage，仅展示尾部） */
+    /** 刷新次数表与最近 200 条日志（优先从 Firestore 拉取，降级到 localStorage） */
     function refresh() {
-        const stats = Storage.getStats();
-        const countsBody = document.getElementById('stats-counts-body');
-        if (countsBody) {
-            countsBody.innerHTML = Object.entries(stats.counts).map(([k, v]) =>
-                '<tr><td>' + (TOOL_NAMES[k] || k) + '</td><td>' + v + '</td></tr>'
-            ).join('');
-        }
         const logsBody = document.getElementById('stats-logs-body');
-        if (logsBody) {
-            const logs = (stats.logs || []).slice(-200).reverse();
-            logsBody.innerHTML = logs.map(l =>
-                '<tr><td>' + (TOOL_NAMES[l.tool] || l.tool) + '</td><td>' + (l.operator || '-') + '</td><td>' + (l.team || '-') + '</td><td>' + (l.region || '-') + '</td><td>' + new Date(l.time).toLocaleString('zh-CN') + '</td></tr>'
-            ).join('') || '<tr><td colspan="5" style="text-align:center;color:#999">暂无记录</td></tr>';
+        const countsBody = document.getElementById('stats-counts-body');
+        if (logsBody) logsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999">加载中…</td></tr>';
+
+        function renderLogs(logs) {
+            const counts = {};
+            logs.forEach(l => { counts[l.tool] = (counts[l.tool] || 0) + 1; });
+            if (countsBody) {
+                const allKeys = Object.keys(TOOL_NAMES);
+                countsBody.innerHTML = allKeys.map(k =>
+                    '<tr><td>' + TOOL_NAMES[k] + '</td><td>' + (counts[k] || 0) + '</td></tr>'
+                ).join('');
+            }
+            if (logsBody) {
+                logsBody.innerHTML = logs.map(l =>
+                    '<tr><td>' + (TOOL_NAMES[l.tool] || l.tool) + '</td><td>' + (l.operator || '-') + '</td><td>' + (l.team || '-') + '</td><td>' + (l.region || '-') + '</td><td>' + new Date(l.time).toLocaleString('zh-CN') + '</td></tr>'
+                ).join('') || '<tr><td colspan="5" style="text-align:center;color:#999">暂无记录</td></tr>';
+            }
+        }
+
+        if (window._firestore) {
+            window._firestore.getLogs(500).then(logs => {
+                if (logs) { renderLogs(logs); return; }
+                const stats = Storage.getStats();
+                renderLogs((stats.logs || []).slice(-200).reverse());
+            });
+        } else {
+            const stats = Storage.getStats();
+            renderLogs((stats.logs || []).slice(-200).reverse());
         }
     }
 
