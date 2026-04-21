@@ -2396,7 +2396,7 @@ const Storage = (() => {
     const DEFAULT_PRICE_ADJUST = {
         profitBp: 101,
         bottomPrice520: 3.60,
-        bottomPriceNon520Min: 9.10,
+        bottomPriceNon520Min: 3.60,
         effectiveDate: '',
         remarks: '',
         operator: '系统默认',
@@ -2713,7 +2713,7 @@ const ToolPriceAdjust = (() => {
             bottomPrice = config.bottomPrice520;
         } else {
             /* 非520客户：max(业务成本 + 风险成本, 非520客户兜底价格下限) */
-            bottomPrice = Math.max(toPercent(commonCfg.bizCost) + riskCost, config.bottomPriceNon520Min || 4.55);
+            bottomPrice = Math.max(toPercent(commonCfg.bizCost) + riskCost, config.bottomPriceNon520Min || 3.60);
         }
 
         /* —— 校验：当前价格必须大于兜底价格 —— */
@@ -3166,8 +3166,8 @@ const ConfigPanel = (() => {
         const history = Storage.getPriceAdjustHistory();
         const cfg = history[index];
         document.getElementById('cfg-profitBp').value = cfg.profitBp;
-        document.getElementById('cfg-bottomPrice520').value = cfg.bottomPrice520 || 4.55;
-        document.getElementById('cfg-bottomPriceNon520Min').value = cfg.bottomPriceNon520Min || 4.55;
+        document.getElementById('cfg-bottomPrice520').value = cfg.bottomPrice520 || 3.60;
+        document.getElementById('cfg-bottomPriceNon520Min').value = cfg.bottomPriceNon520Min || 3.60;
         document.getElementById('cfg-paDate').value = cfg.effectiveDate;
         document.getElementById('cfg-paRemarks').value = cfg.remarks || '';
     }
