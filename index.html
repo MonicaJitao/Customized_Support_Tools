@@ -3443,11 +3443,13 @@ const ConfigPanel = (() => {
    ============================================================ */
 const StatsPanel = (() => {
     const TOOL_NAMES = {
-        priceAdjust: '一户一策调价计算器',
         margin: '承兑保证金比例计算器',
+        priceAdjust: '一户一策调价计算器',
         fixedTerm: '承兑-定期方案测算',
         breakeven: '承兑-收益打平测算'
     };
+    /** 与侧边栏业务模块顺序一致 */
+    const TOOL_ORDER = ['margin', 'priceAdjust', 'fixedTerm', 'breakeven'];
 
     /** 刷新次数表与全部日志（优先从 Supabase 拉取，降级到 localStorage） */
     function refresh() {
@@ -3459,7 +3461,7 @@ const StatsPanel = (() => {
             const counts = {};
             logs.forEach(l => { counts[l.tool] = (counts[l.tool] || 0) + 1; });
             if (countsBody) {
-                const allKeys = Object.keys(TOOL_NAMES);
+                const allKeys = TOOL_ORDER;
                 countsBody.innerHTML = allKeys.map(k =>
                     '<tr><td>' + TOOL_NAMES[k] + '</td><td>' + (counts[k] || 0) + '</td></tr>'
                 ).join('');
